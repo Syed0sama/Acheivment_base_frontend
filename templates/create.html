@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Create Campaign</h2>
+
+<form method="POST">
+    <label>TENANTID:</label>
+    <input name="TENANTID"><br>
+
+    <label>CAMPAIGNID:</label>
+    <input name="CAMPAIGNID"><br>
+
+    <label>CAMPAIGNNAME:</label>
+    <input name="CAMPAIGNNAME"><br>
+
+    <label>STARTDATE:</label>
+    <input type="date" name="STARTDATE"><br>
+
+    <label>ENDDATE:</label>
+    <input type="date" name="ENDDATE"><br>
+
+    <label>STATUS:</label>
+    <input name="STATUS"><br>
+
+    <button type="submit">Save</button>
+</form>
+{% endblock %}

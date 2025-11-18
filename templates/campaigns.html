@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+    <title>Campaigns Table</title>
+</head>
+<body>
+    <h2>Campaigns Table</h2>
+
+    <div class="nav-buttons">
+        <a href="/lookup" class="nav-btn">Lookup Table</a>
+        <a href="/logs" class="nav-btn">Logs Table</a>
+    </div>
+
+    <a href="/" class="back-btn">Back Home</a>
+    <a href="/campaigns/add" class="add-btn">Add Campaign</a>
+    <br><br>
+
+    <div class="table-container">
+        <table>
+            <tr>
+                {% for col in columns %}
+                <th>{{ col }}</th>
+                {% endfor %}
+                <th>Actions</th>
+            </tr>
+            {% for row in rows %}
+            <tr>
+                {% for col, val in zip(columns, row) %}
+                    <td>{{ val }}</td>
+                {% endfor %}
+                <td>
+                    <a href="{{ url_for('edit_campaign', campaignid=row[columns.index('CAMPAIGNID')]) }}">Edit</a> |
+                    <a href="{{ url_for('delete_campaign', campaignid=row[columns.index('CAMPAIGNID')]) }}" onclick="return confirm('Are you sure?')">Delete</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+</body>
+</html>

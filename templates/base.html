@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+
+    <title>Campaigns CRUD</title>
+
+    <style>
+        body { font-family: Arial; margin: 30px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; }
+        a, button { padding: 6px 10px; margin: 2px; }
+    </style>
+</head>
+<body>
+    <h1>Campaign Management</h1>
+
+    {% block content %}{% endblock %}
+</body>
+</html>

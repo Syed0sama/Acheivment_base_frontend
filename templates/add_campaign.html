@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add Campaign</title>
+</head>
+<body>
+<h2>Add New Campaign</h2>
+<form method="POST" action="/campaigns/add">
+    <label for="CAMPAIGNNAME">Campaign Name:</label>
+    <input type="text" name="CAMPAIGNNAME" required><br><br>
+
+    <label for="STARTDATE">Start Date:</label>
+    <input type="date" name="STARTDATE" required><br><br>
+
+    <label for="ENDDATE">End Date:</label>
+    <input type="date" name="ENDDATE" required><br><br>
+
+    <label for="STATUS">Status:</label>
+    <input type="text" name="STATUS" required><br><br>
+
+    <label for="RECHARGETYPE">Recharge Type:</label>
+    <select name="RECHARGETYPE" id="RECHARGETYPE">
+        <option value="">Select Type</option>
+        <option value="BUNDLE">BUNDLE</option>
+        <option value="NORMAL RECHARGE">NORMAL RECHARGE</option>
+        <option value="ALL">ALL</option>
+        <option value="RECHARGER">RECHARGER</option>
+    </select><br><br>
+
+    <div id="recharger_fields" style="display:none;">
+        <label for="RECHARGERNR">Recharge NR:</label>
+        <input type="text" name="RECHARGERNR"><br><br>
+        <label for="RECHARGERBR">Recharge BR:</label>
+        <input type="text" name="RECHARGERBR"><br><br>
+    </div>
+
+    <button type="submit">Add Campaign</button>
+</form>
+
+<script>
+    const rechargetypeSelect = document.getElementById("RECHARGETYPE");
+    const rechargerFields = document.getElementById("recharger_fields");
+
+    rechargetypeSelect.addEventListener("change", function() {
+        if(this.value === "RECHARGER") {
+            rechargerFields.style.display = "block";
+        } else {
+            rechargerFields.style.display = "none";
+        }
+    });
+</script>
+</body>
+</html>

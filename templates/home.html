@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+
+    <title>Welcome</title>
+
+    <style>
+        body { font-family: Arial; padding: 50px; text-align: center; }
+        h1 { margin-bottom: 40px; }
+        .btn {
+            display: inline-block;
+            padding: 15px 30px;
+            margin: 10px;
+            font-size: 18px;
+            color: white;
+            background-color: #4CAF50;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .btn:hover { background-color: #45a049; }
+    </style>
+</head>
+<body>
+    <h1>Acheivement Based FCA Bundle</h1>
+
+    <a href="/campaigns" class="btn">Campaigns Table</a>
+    <a href="/lookup" class="btn">Lookup Table</a>
+     <a href="/logs" class="btn">Logs Table</a>
+
+</body>
+</html>

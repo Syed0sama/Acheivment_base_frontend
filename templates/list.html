@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+<a href="/create">➕ Create New Campaign</a>
+
+<table>
+    <thead>
+        <tr>
+            {% for c in cols %}
+            <th>{{ c }}</th>
+            {% endfor %}
+            <th>Actions</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        {% for r in rows %}
+        <tr>
+            {% for v in r %}
+            <td>{{ v }}</td>
+            {% endfor %}
+            <td>
+                <a href="/edit/{{ r[1] }}">✏️ Edit</a>
+                <a href="/delete/{{ r[1] }}" onclick="return confirm('Delete?')">🗑️ Delete</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

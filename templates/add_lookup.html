@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+
+    <title>Add Lookup Record</title>
+
+</head>
+<body>
+    <a href="/lookup" class="back-btn">Back to Lookup Table</a>
+    <form method="POST">
+        <label>CAMPAIGNID:</label><br>
+        <input type="number" name="CAMPAIGNID" required><br><br>
+        <label>RETAILERID:</label><br>
+        <input type="text" name="RETAILERID" required><br><br>
+        <label>PRODUCTID:</label><br>
+        <input type="text" name="PRODUCTID" required><br><br>
+        <label>STARTDATE:</label><br>
+        <input type="datetime-local" name="STARTDATE"><br><br>
+        <label>ENDDATE:</label><br>
+        <input type="datetime-local" name="ENDDATE"><br><br>
+        <label>TARGET:</label><br>
+        <input type="number" name="TARGET"><br><br>
+        <label>COMMISSION:</label><br>
+        <input type="number" step="0.0000000001" name="COMMISSION"><br><br>
+        <label>MIN:</label><br>
+        <input type="number" name="MIN"><br><br>
+        <label>MAX:</label><br>
+        <input type="number" name="MAX"><br><br>
+        <label>CAP:</label><br>
+        <input type="number" name="CAP"><br><br>
+        <input type="submit" value="Add Record">
+    </form>
+</body>
+</html>

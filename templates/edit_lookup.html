@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+    <title>Edit Lookup Record</title>
+</head>
+<body>
+    <a href="/lookup" class="back-btn">Back to Lookup Table</a>
+    <form method="POST">
+        {% for col, val in zip(columns, lookup) %}
+            <label>{{ col }}:</label><br>
+            {% if col in ['CAMPAIGNID','RETAILERID','PRODUCTID'] %}
+                <input type="text" name="{{ col }}" value="{{ val }}"><br><br>
+            {% else %}
+                <input type="text" name="{{ col }}" value="{{ val }}"><br><br>
+            {% endif %}
+        {% endfor %}
+        <input type="submit" value="Update Record">
+    </form>
+</body>
+</html>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+    <title>Logs Table</title>
+</head>
+<body>
+    <h2>Logs Table</h2>
+
+    <div class="nav-buttons">
+        <a href="/campaigns" class="nav-btn">Campaign Table</a>
+        <a href="/lookup" class="nav-btn">Lookup Table</a>
+    </div>
+
+    <a href="/" class="back-btn">Back Home</a>
+    <br><br>
+
+    <div class="table-container">
+        <table>
+            <tr>
+                {% for col in columns %}
+                <th>{{ col }}</th>
+                {% endfor %}
+            </tr>
+            {% for row in rows %}
+            <tr>
+                {% for col, val in zip(columns, row) %}
+                    <td>{{ val }}</td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+</body>
+</html>
