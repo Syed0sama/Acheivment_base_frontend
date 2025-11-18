@@ -2,20 +2,21 @@
 <html>
 <head>
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
-    <title>Edit Lookup Record</title>
+    <title>Edit Lookup</title>
 </head>
 <body>
-    <a href="/lookup" class="back-btn">Back to Lookup Table</a>
+    <h2>Edit Lookup</h2>
+    <div class="nav-buttons">
+        <a href="/lookup" class="nav-btn">Back to Lookup Table</a>
+    </div>
     <form method="POST">
         {% for col, val in zip(columns, lookup) %}
-            <label>{{ col }}:</label><br>
-            {% if col in ['CAMPAIGNID','RETAILERID','PRODUCTID'] %}
-                <input type="text" name="{{ col }}" value="{{ val }}"><br><br>
-            {% else %}
-                <input type="text" name="{{ col }}" value="{{ val }}"><br><br>
-            {% endif %}
+            <label>{{ col }}:</label>
+            <input type="text" name="{{ col }}" value="{{ val if val is not none else '' }}">
+            <br><br>
         {% endfor %}
-        <input type="submit" value="Update Record">
+
+        <button type="submit">Update</button>
     </form>
 </body>
 </html>

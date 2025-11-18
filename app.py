@@ -162,35 +162,46 @@ def add_lookup():
         return redirect(url_for("lookup"))
     return render_template("add_lookup.html")
 
-
 @app.route("/lookup/edit/<int:campaignid>/<retailerid>/<productid>", methods=["GET", "POST"])
 def edit_lookup(campaignid, retailerid, productid):
     cursor = conn.cursor()
-    if request.method == "POST":
-        startdate = request.form["STARTDATE"]
-        enddate = request.form["ENDDATE"]
-        target = request.form["TARGET"]
-        commission = request.form["COMMISSION"]
-        min_val = request.form["MIN"]
-        max_val = request.form["MAX"]
-        cap = request.form["CAP"]
 
+    # Helper function to convert empty strings to None for numeric columns
+    def empty_to_none(value):
+        return None if value == '' else value
+
+    if request.method == "POST":
+        # Get form values
+        tenantid = request.form.get("TENANTID")  # read-only, but can still include if needed
+        new_campaignid = request.form.get("CAMPAIGNID")  # editable
+        startdate = request.form.get("STARTDATE")
+        enddate = request.form.get("ENDDATE")
+        target = empty_to_none(request.form.get("TARGET"))
+        commission = empty_to_none(request.form.get("COMMISSION"))
+        min_val = empty_to_none(request.form.get("MIN"))
+        max_val = empty_to_none(request.form.get("MAX"))
+        cap = empty_to_none(request.form.get("CAP"))
+
+        # Update the lookup table; update CAMPAIGNID as well
         cursor.execute(f'''
             UPDATE "{SCHEMA}"."{LOOKUP_TABLE}"
-            SET STARTDATE=?, ENDDATE=?, TARGET=?, COMMISSION=?, MIN=?, MAX=?, CAP=?, MODIFICATIONDATE=CURRENT_TIMESTAMP
+            SET CAMPAIGNID=?, STARTDATE=?, ENDDATE=?, TARGET=?, COMMISSION=?, MIN=?, MAX=?, CAP=?, MODIFICATIONDATE=CURRENT_TIMESTAMP
             WHERE CAMPAIGNID=? AND RETAILERID=? AND PRODUCTID=?
-        ''', (startdate, enddate, target, commission, min_val, max_val, cap, campaignid, retailerid, productid))
+        ''', (new_campaignid, startdate, enddate, target, commission, min_val, max_val, cap, campaignid, retailerid, productid))
         conn.commit()
+
         return redirect(url_for("lookup"))
 
+    # GET request: fetch the existing row
     cursor.execute(f'''
-        SELECT * FROM "{SCHEMA}"."{LOOKUP_TABLE}" 
+        SELECT * FROM "{SCHEMA}"."{LOOKUP_TABLE}"
         WHERE CAMPAIGNID=? AND RETAILERID=? AND PRODUCTID=?
     ''', (campaignid, retailerid, productid))
-
     lookup_row = cursor.fetchone()
     columns = [c[0] for c in cursor.description]
-    return render_template("edit_lookup.html", lookup=lookup_row, columns=columns)
+
+    return render_template("edit_lookup.html", lookup=lookup_row, columns=columns, zip=zip)
+
 
 
 @app.route("/lookup/delete/<int:campaignid>/<retailerid>/<productid>")

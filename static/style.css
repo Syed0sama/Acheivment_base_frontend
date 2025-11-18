@@ -39,7 +39,7 @@ tr:hover {
 }
 
 /* Buttons styling */
-a, input[type="submit"] {
+a, input[type="submit"],button {
     display: inline-block;
     padding: 8px 15px;
     margin: 5px 0;
@@ -59,6 +59,7 @@ a.back-btn {
 
 a.add-btn {
     background-color: #273c75;
+    
 }
 
 a:hover, input[type="submit"]:hover {
@@ -145,6 +146,33 @@ form {
 }
 
 
+/* Dropdown styling with arrow */
+select {
+    width: 100%;
+    padding: 8px 10px;
+    margin: 5px 0 15px 0;
+    box-sizing: border-box;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #fff;
+    font-size: 14px;
+    color: #333;
+    appearance: none; /* remove default arrow */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg width='10' height='5' viewBox='0 0 10 5' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0l5 5 5-5H0z' fill='%23333'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 10px 5px;
+    padding-right: 30px; /* leave space for arrow */
+    transition: 0.3s ease;
+}
+
+/* Hover/Focus effect */
+select:hover, select:focus {
+    border-color: #3498db;
+    outline: none;
+}
 
 
 
