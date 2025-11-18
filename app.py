@@ -54,68 +54,101 @@ def campaigns():
 
     return render_template("campaigns.html", rows=extended_rows, columns=extended_columns, zip=zip)
 
+
 @app.route("/campaigns/add", methods=["GET", "POST"])
 def add_campaign():
+    cursor = conn.cursor()
+
     if request.method == "POST":
-        campaignname = request.form["CAMPAIGNNAME"]
-        startdate = request.form["STARTDATE"]
-        enddate = request.form["ENDDATE"]
-        status = request.form["STATUS"]
+        def empty_to_none(val):
+            return None if val == '' else val
 
-        rechargetype = request.form.get("RECHARGETYPE") or None
-        rechargernr = request.form.get("RECHARGERNR") or None
-        rechargerbr = request.form.get("RECHARGERBR") or None
+        # Collect all form values except TENANTID, CAMPAIGNID, CREATEDATE
+        data = {}
+        for key, val in request.form.items():
+            if key not in ['TENANTID', 'CAMPAIGNID', 'CREATEDATE']:
+                data[key] = empty_to_none(val)
 
-        cursor = conn.cursor()
-        cursor.execute(f'''
-            INSERT INTO "{SCHEMA}"."{CAMPAIGN_TABLE}" 
-            (CAMPAIGNNAME, STARTDATE, ENDDATE, STATUS, RECHARGETYPE, RECHARGERNR, RECHARGERBR)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', (campaignname, startdate, enddate, status, rechargetype, rechargernr, rechargerbr))
+        # Clear recharge fields if RECHARGETYPE != RECHARGER
+        if data.get('RECHARGETYPE') != 'RECHARGER':
+            data['RECHARGERNR'] = None
+            data['RECHARGERBR'] = None
+
+        # Insert into database
+        columns = list(data.keys())
+        values = list(data.values())
+        placeholders = ','.join(['?' for _ in columns])
+        insert_stmt = f'INSERT INTO "{SCHEMA}"."{CAMPAIGN_TABLE}" ({",".join(columns)}) VALUES ({placeholders})'
+
+        cursor.execute(insert_stmt, tuple(values))
         conn.commit()
         return redirect(url_for("campaigns"))
 
-    return render_template("add_campaign.html")
+    # GET request: fetch columns excluding dependent fields
+    cursor.execute(f'SELECT * FROM "{SCHEMA}"."{CAMPAIGN_TABLE}" LIMIT 1')
+    all_columns = [c[0] for c in cursor.description]
+
+    # Exclude dependent fields from main loop
+    columns = [c for c in all_columns if c not in ['BUNDLE', 'RECHARGETYPE', 'BUNDLETYPE', 'RECHARGERNR', 'RECHARGERBR']]
+
+    return render_template("add_campaign.html", columns=columns, zip=zip)
 
 
 @app.route("/campaigns/edit/<int:campaignid>", methods=["GET", "POST"])
 def edit_campaign(campaignid):
     cursor = conn.cursor()
 
+    # Editable fields
+    editable_fields = [
+        "CAMPAIGNNAME",
+        "STARTDATE",
+        "ENDDATE",
+        "STATUS",
+        "FCABUNDLERANGE",
+        "BVSHITS_TO_FCA_RANGE",
+        "IFCADATERANGE",
+        "RECHARGETYPE",
+        "RECHARGERNR",
+        "RECHARGERBR"
+    ]
+
     if request.method == "POST":
-        # Helper: convert empty string to None
         def empty_to_none(val):
             return None if val == '' else val
 
-        # Collect all form values
-        campaignname = request.form.get("CAMPAIGNNAME")
-        startdate = request.form.get("STARTDATE")
-        enddate = request.form.get("ENDDATE")
-        status = request.form.get("STATUS")
-        rechargetype = request.form.get("RECHARGETYPE")
-        rechargernr = empty_to_none(request.form.get("RECHARGERNR", ''))
-        rechargerbr = empty_to_none(request.form.get("RECHARGERBR", ''))
+        # Collect only editable fields
+        data = {}
+        for field in editable_fields:
+            data[field] = empty_to_none(request.form.get(field, None))
 
-        # If type is not RECHARGER, clear these fields
-        if rechargetype != "RECHARGER":
-            rechargernr = None
-            rechargerbr = None
+        # If RECHARGETYPE != RECHARGER, clear recharge fields
+        if data.get('RECHARGETYPE') != 'RECHARGER':
+            data['RECHARGERNR'] = None
+            data['RECHARGERBR'] = None
 
-        # Execute update
+        # Build update statement dynamically
+        set_clause = ', '.join([f'"{col}"=?' for col in editable_fields])
+        values = [data[col] for col in editable_fields]
+        values.append(campaignid)  # for WHERE clause
+
         cursor.execute(f'''
             UPDATE "{SCHEMA}"."{CAMPAIGN_TABLE}"
-            SET CAMPAIGNNAME=?, STARTDATE=?, ENDDATE=?, STATUS=?, RECHARGETYPE=?, RECHARGERNR=?, RECHARGERBR=?
+            SET {set_clause}
             WHERE CAMPAIGNID=?
-        ''', (campaignname, startdate, enddate, status, rechargetype, rechargernr, rechargerbr, campaignid))
+        ''', tuple(values))
         conn.commit()
+
         return redirect(url_for("campaigns"))
 
     # GET request: fetch existing campaign
     cursor.execute(f'SELECT * FROM "{SCHEMA}"."{CAMPAIGN_TABLE}" WHERE CAMPAIGNID=?', (campaignid,))
     campaign = cursor.fetchone()
     columns = [c[0] for c in cursor.description]
+    
+    # Convert row to dictionary for easier access in template
+    campaign_dict = dict(zip(columns, campaign))
 
-    return render_template("edit_campaign.html", campaign=campaign, columns=columns, zip=zip)
+    return render_template("edit_campaign.html", campaign=campaign_dict, columns=columns, zip=zip)
 
 
 @app.route("/campaigns/delete/<int:campaignid>")

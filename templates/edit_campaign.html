@@ -1,64 +1,71 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
     <title>Edit Campaign</title>
-    <script>
-        function toggleRechargeFields() {
-            var type = document.getElementById("RECHARGETYPE").value;
-            var rechargeFields = document.getElementById("recharge_fields");
-            if(type === "RECHARGER") {
-                rechargeFields.style.display = "block";
-            } else {
-                rechargeFields.style.display = "none";
-            }
-        }
-        window.onload = toggleRechargeFields; // initial check
-    </script>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <h2>Edit Campaign</h2>
-    <div class="nav-buttons">
-        <a href="/campaigns" class="nav-btn">Back to Campaing Table</a>
-    </div>
     <form method="POST">
-        {% for col, val in zip(columns, campaign) %}
-            {% if col not in ['RECHARGERNR','RECHARGERBR'] %}
+        {% for col in columns %}
+            {% if col not in ['TENANTID', 'CAMPAIGNID', 'CREATEDATE', 'RECHARGERNR', 'RECHARGERBR', 'RECHARGETYPE', 'BUNDLETYPE', 'BUNDLE'] %}
                 <label>{{ col }}:</label>
-                {% if col == 'RECHARGETYPE' %}
-                    <select name="RECHARGETYPE" id="RECHARGETYPE" onchange="toggleRechargeFields()">
-                        <option value="" {% if val is none or val == '' %}selected{% endif %}>Select Type</option>
-                        <option value="RECHARGER" {% if val == 'RECHARGER' %}selected{% endif %}>RECHARGER</option>
-                        <option value="BUNDLE" {% if val == 'BUNDLE' %}selected{% endif %}>BUNDLE</option>
-                        <option value="NORMAL RECHARGE" {% if val == 'NORMAL RECHARGE' %}selected{% endif %}>NORMAL RECHARGE</option>
-                        <option value="ALL" {% if val == 'ALL' %}selected{% endif %}>ALL</option>
-                    </select>
+                {% if col in ['STARTDATE', 'ENDDATE'] %}
+                    <!-- Make STARTDATE and ENDDATE editable with proper date format -->
+                    {% set date_value = request.form.get(col, '') or campaign[col] %}
+                    <input type="date" name="{{ col }}" value="{{ date_value|string|replace(' 00:00:00', '') if date_value else '' }}"><br><br>
                 {% else %}
-                    <input type="text" name="{{ col }}" value="{{ val if val is not none else '' }}">
+                    <!-- Make only specific fields editable, others readonly -->
+                    {% set field_value = request.form.get(col, '') or campaign[col] %}
+                    {% if col in ['CAMPAIGNNAME', 'STATUS', 'FCABUNDLERANGE', 'BVSHITS_TO_FCA_RANGE', 'IFCADATERANGE'] %}
+                        <input type="text" name="{{ col }}" value="{{ field_value if field_value is not none else '' }}"><br><br>
+                    {% else %}
+                        <!-- For numeric fields, ensure empty values instead of None -->
+                        <input type="text" name="{{ col }}" value="{{ field_value if field_value is not none else '' }}" readonly style="background-color: #f0f0f0;"><br><br>
+                    {% endif %}
                 {% endif %}
-                <br><br>
+                
+                <!-- Insert BUNDLE after BVSHITS -->
+                {% if col == 'BVSHITS' %}
+                    <!-- BUNDLE Field (DISABLED) -->
+                    <label>BUNDLE:</label>
+                    {% set bundle_value = request.form.get('BUNDLE', '') or campaign.BUNDLE %}
+                    <select name="BUNDLE" id="BUNDLE" disabled style="background-color: #f0f0f0;">
+                        <option value="0" {% if bundle_value == '0' or bundle_value == 0 %}selected{% endif %}>0</option>
+                        <option value="1" {% if bundle_value == '1' or bundle_value == 1 %}selected{% endif %}>1</option>
+                    </select>
+                    <!-- Hidden input to submit BUNDLE value -->
+                    <input type="hidden" name="BUNDLE" value="{{ bundle_value if bundle_value is not none else '0' }}">
+                    <br><br>
+                {% endif %}
             {% endif %}
         {% endfor %}
 
-        <div id="recharge_fields">
-            <label>RECHARGERNR:</label>
-            <input type="text" name="RECHARGERNR"
-                   value="{% if 'RECHARGERNR' in columns %}{{ campaign[columns.index('RECHARGERNR')] }}{% endif %}">
-            <br><br>
+        <!-- RECHARGETYPE Field -->
+        {% set rechargetype_value = request.form.get('RECHARGETYPE','') or campaign.RECHARGETYPE %}
+        <label>RECHARGETYPE:</label>
+        <input type="text" name="RECHARGETYPE" value="{{ rechargetype_value if rechargetype_value is not none else '' }}" readonly style="background-color: #f0f0f0;">
+        <br><br>
 
-            <label>RECHARGERBR:</label>
-            <input type="text" name="RECHARGERBR"
-                   value="{% if 'RECHARGERBR' in columns %}{{ campaign[columns.index('RECHARGERBR')] }}{% endif %}">
-            <br><br>
-        </div>
+        <!-- BUNDLETYPE Field -->
+        {% set bundletype_value = request.form.get('BUNDLETYPE','') or campaign.BUNDLETYPE %}
+        <label>BUNDLETYPE:</label>
+        <input type="text" name="BUNDLETYPE" value="{{ bundletype_value if bundletype_value is not none else '' }}" readonly style="background-color: #f0f0f0;">
+        <br><br>
 
-        <button type="submit">Update</button>
+        <!-- RECHARGERNR Field -->
+        {% set rechargernr_value = request.form.get('RECHARGERNR','') or campaign.RECHARGERNR %}
+        <label>RECHARGERNR:</label>
+        <input type="text" name="RECHARGERNR" value="{{ rechargernr_value if rechargernr_value is not none else '' }}" readonly style="background-color: #f0f0f0;">
+        <br><br>
+
+        <!-- RECHARGERBR Field -->
+        {% set rechargebr_value = request.form.get('RECHARGERBR','') or campaign.RECHARGERBR %}
+        <label>RECHARGERBR:</label>
+        <input type="text" name="RECHARGERBR" value="{{ rechargebr_value if rechargebr_value is not none else '' }}" readonly style="background-color: #f0f0f0;">
+        <br><br>
+
+        <button type="submit" class="update-btn">Update Campaign</button>
     </form>
-
-    <script>
-        // hide recharge fields initially if not RECHARGER
-        var type = document.getElementById("RECHARGETYPE").value;
-        document.getElementById("recharge_fields").style.display = (type === "RECHARGER") ? "block" : "none";
-    </script>
 </body>
 </html>

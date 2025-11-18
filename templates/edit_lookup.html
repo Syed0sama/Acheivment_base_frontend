@@ -11,9 +11,16 @@
     </div>
     <form method="POST">
         {% for col, val in zip(columns, lookup) %}
-            <label>{{ col }}:</label>
-            <input type="text" name="{{ col }}" value="{{ val if val is not none else '' }}">
-            <br><br>
+            {% if col not in ['TENANTID', 'CREATEDATE', 'MODIFICATIONDATE'] %}
+                <label>{{ col }}:</label>
+                {% if col in ['STARTDATE', 'ENDDATE'] %}
+                    <!-- Convert datetime to YYYY-MM-DD format for date input -->
+                    <input type="date" name="{{ col }}" value="{{ val.strftime('%Y-%m-%d') }}">
+                {% else %}
+                    <input type="text" name="{{ col }}" value="{{ val if val is not none else '' }}">
+                {% endif %}
+                <br><br>
+            {% endif %}
         {% endfor %}
 
         <button type="submit">Update</button>
