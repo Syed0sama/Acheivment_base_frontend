@@ -10,30 +10,60 @@
         <a href="/campaigns" class="nav-btn">Back to Campaign Table</a>
     </div>
     <form method="POST">
-        {% for col in columns %}
-            {% if col not in ['TENANTID', 'CAMPAIGNID', 'CREATEDATE', 'RECHARGERNR', 'RECHARGERBR', 'RECHARGETYPE', 'BUNDLETYPE', 'BUNDLE'] %}
-                <label>{{ col }}:</label>
+        {% for col, display_col in zip(columns, display_columns) %}
+            {% if col not in ['TENANTID', 'CAMPAIGNID', 'CREATEDATE', 'RECHARGERNR', 'RECHARGERBR', 'RECHARGETYPE', 'BUNDLETYPE', 'BUNDLE', 'RETSIMBUN'] %}
+                <label>{{ display_col }}:</label>
                 {% if col in ['STARTDATE', 'ENDDATE'] %}
                     <input type="date" name="{{ col }}" value="{{ request.form.get(col, '') }}"><br><br>
                 {% endif %}
                 {% if col not in ['STARTDATE', 'ENDDATE'] %}
-                    <input type="text" name="{{ col }}" value="{{ request.form.get(col, '') }}"><br><br>
+                    {% if col == 'BUNDLEPRICETYPE' %}
+                        <!-- BUNDLEPRICETYPE as dropdown -->
+                        <select name="BUNDLEPRICETYPE">
+                            <option value="">Select Price Type</option>
+                            <option value="FIX" {% if request.form.get('BUNDLEPRICETYPE') == 'FIX' %}selected{% endif %}>FIX</option>
+                            <option value="GREATER THAN EQUAL TO" {% if request.form.get('BUNDLEPRICETYPE') == 'GREATER THAN EQUAL TO' %}selected{% endif %}>GREATER THAN EQUAL TO</option>
+                            <option value="RANGE" {% if request.form.get('BUNDLEPRICETYPE') == 'RANGE' %}selected{% endif %}>RANGE</option>
+                        </select>
+                    {% elif col == 'SALESTYPE' %}
+                        <!-- SALESTYPE as dropdown -->
+                        <select name="SALESTYPE">
+                            <option value="">Select Sales Type</option>
+                            <option value="MNP" {% if request.form.get('SALESTYPE') == 'MNP' %}selected{% endif %}>MNP</option>
+                            <option value="BYN" {% if request.form.get('SALESTYPE') == 'BYN' %}selected{% endif %}>BYN</option>
+                            <option value="NPP" {% if request.form.get('SALESTYPE') == 'NPP' %}selected{% endif %}>NPP</option>
+                            <option value="MNPBVS_NEW" {% if request.form.get('SALESTYPE') == 'MNPBVS_NEW' %}selected{% endif %}>MNPBVS_NEW</option>
+                            <option value="e_SIM_BYN" {% if request.form.get('SALESTYPE') == 'e_SIM_BYN' %}selected{% endif %}>e_SIM_BYN</option>
+                            <option value="D2C" {% if request.form.get('SALESTYPE') == 'D2C' %}selected{% endif %}>D2C</option>
+                        </select>
+                    {% elif col in ['FCA', 'IFCA', 'BVSHITS'] %}
+                        <!-- FCA, IFCA, BVSHITS as Yes/No dropdown -->
+                        <select name="{{ col }}">
+                            <option value="">Select</option>
+                            <option value="1" {% if request.form.get(col) == '1' %}selected{% endif %}>Yes</option>
+                            <option value="0" {% if request.form.get(col) == '0' %}selected{% endif %}>No</option>
+                        </select>
+                    {% else %}
+                        <input type="text" name="{{ col }}" value="{{ request.form.get(col, '') }}">
+                    {% endif %}
+                    <br><br>
                 {% endif %}
                 
                 <!-- Insert dependent fields after BVSHITS -->
                 {% if col == 'BVSHITS' %}
                     <!-- BUNDLE Dropdown -->
-                    <label>BUNDLE:</label>
+                    <label>Bundle:</label>
                     <select name="BUNDLE" id="BUNDLE">
-                        <option value="0" {% if request.form.get('BUNDLE') == '0' %}selected{% endif %}>0</option>
-                        <option value="1" {% if request.form.get('BUNDLE') == '1' %}selected{% endif %}>1</option>
+                        <option value="">Select</option>
+                        <option value="1" {% if request.form.get('BUNDLE') == '1' %}selected{% endif %}>Yes</option>
+                        <option value="0" {% if request.form.get('BUNDLE') == '0' %}selected{% endif %}>No</option>
                     </select>
                     <br><br>
 
                     <!-- All dependent fields grouped together -->
                     <div id="dependent_fields" style="display:none;">
                         <!-- RECHARGETYPE field -->
-                        <label>RECHARGETYPE:</label>
+                        <label>Recharge Type:</label>
                         <select name="RECHARGETYPE" id="RECHARGETYPE">
                             <option value="">Select Type</option>
                             <option value="RECHARGER" {% if request.form.get('RECHARGETYPE') == 'RECHARGER' %}selected{% endif %}>RECHARGER</option>
@@ -45,17 +75,31 @@
 
                         <!-- RECHARGERNR + RECHARGERBR fields (appear only when RECHARGETYPE is RECHARGER) -->
                         <div id="recharge_fields" style="display:none;">
-                            <label>RECHARGERNR:</label>
+                            <label>Recharge NR:</label>
                             <input type="text" name="RECHARGERNR" value="{{ request.form.get('RECHARGERNR','') }}"><br><br>
 
-                            <label>RECHARGERBR:</label>
+                            <label>Recharge BR:</label>
                             <input type="text" name="RECHARGERBR" value="{{ request.form.get('RECHARGERBR','') }}"><br><br>
                         </div>
 
-                        <!-- BUNDLETYPE field (always shows when BUNDLE is 1) -->
-                        <label>BUNDLETYPE:</label>
-                        <input type="text" name="BUNDLETYPE" value="{{ request.form.get('BUNDLETYPE','') }}">
+                        <!-- BUNDLETYPE field as dropdown (always shows when BUNDLE is 1) -->
+                        <label>Bundle Type:</label>
+                        <select name="BUNDLETYPE" id="BUNDLETYPE">
+                            <option value="">Select Bundle Type</option>
+                            <option value="POWER LOAD" {% if request.form.get('BUNDLETYPE') == 'POWER LOAD' %}selected{% endif %}>POWER LOAD</option>
+                            <option value="DIGITAL" {% if request.form.get('BUNDLETYPE') == 'DIGITAL' %}selected{% endif %}>DIGITAL</option>
+                            <option value="ADC" {% if request.form.get('BUNDLETYPE') == 'ADC' %}selected{% endif %}>ADC</option>
+                            <option value="FS" {% if request.form.get('BUNDLETYPE') == 'FS' %}selected{% endif %}>FS</option>
+                            <option value="ALL" {% if request.form.get('BUNDLETYPE') == 'ALL' %}selected{% endif %}>ALL</option>
+                        </select>
                         <br><br>
+
+                        <!-- RETSIMBUN field (appears only when BUNDLE=1 and BUNDLETYPE='POWER LOAD') -->
+                        <div id="retsimbun_field" style="display:none;">
+                            <label>Retailer SIM Bundle:</label>
+                            <input type="text" name="RETSIMBUN" value="{{ request.form.get('RETSIMBUN','') }}">
+                            <br><br>
+                        </div>
                     </div>
                 {% endif %}
             {% endif %}
@@ -69,7 +113,9 @@
             var bundle = document.getElementById("BUNDLE").value;
             var dependentDiv = document.getElementById("dependent_fields");
             var rechargeFields = document.getElementById("recharge_fields");
+            var retsimbunField = document.getElementById("retsimbun_field");
             var rechargeType = document.getElementById("RECHARGETYPE").value;
+            var bundleType = document.getElementById("BUNDLETYPE").value;
 
             // Show/hide all dependent fields based on BUNDLE
             if(bundle === "1") {
@@ -81,6 +127,13 @@
                 } else {
                     rechargeFields.style.display = "none";
                 }
+
+                // Show RETSIMBUN only if BUNDLETYPE = 'POWER LOAD'
+                if(bundleType === "POWER LOAD") {
+                    retsimbunField.style.display = "block";
+                } else {
+                    retsimbunField.style.display = "none";
+                }
             } else {
                 dependentDiv.style.display = "none";
             }
@@ -91,6 +144,7 @@
             toggleDependentFields();
             document.getElementById("BUNDLE").addEventListener("change", toggleDependentFields);
             document.getElementById("RECHARGETYPE").addEventListener("change", toggleDependentFields);
+            document.getElementById("BUNDLETYPE").addEventListener("change", toggleDependentFields);
         }
     </script>
 </body>

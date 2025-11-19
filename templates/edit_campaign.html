@@ -5,67 +5,108 @@
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h2>Edit Campaign</h2>
-    <form method="POST">
-        {% for col in columns %}
-            {% if col not in ['TENANTID', 'CAMPAIGNID', 'CREATEDATE', 'RECHARGERNR', 'RECHARGERBR', 'RECHARGETYPE', 'BUNDLETYPE', 'BUNDLE'] %}
-                <label>{{ col }}:</label>
-                {% if col in ['STARTDATE', 'ENDDATE'] %}
-                    <!-- Make STARTDATE and ENDDATE editable with proper date format -->
-                    {% set date_value = request.form.get(col, '') or campaign[col] %}
-                    <input type="date" name="{{ col }}" value="{{ date_value|string|replace(' 00:00:00', '') if date_value else '' }}"><br><br>
-                {% else %}
-                    <!-- Make only specific fields editable, others readonly -->
-                    {% set field_value = request.form.get(col, '') or campaign[col] %}
-                    {% if col in ['CAMPAIGNNAME', 'STATUS', 'FCABUNDLERANGE', 'BVSHITS_TO_FCA_RANGE', 'IFCADATERANGE'] %}
-                        <input type="text" name="{{ col }}" value="{{ field_value if field_value is not none else '' }}"><br><br>
-                    {% else %}
-                        <!-- For numeric fields, ensure empty values instead of None -->
-                        <input type="text" name="{{ col }}" value="{{ field_value if field_value is not none else '' }}" readonly style="background-color: #f0f0f0;"><br><br>
-                    {% endif %}
-                {% endif %}
-                
-                <!-- Insert BUNDLE after BVSHITS -->
-                {% if col == 'BVSHITS' %}
-                    <!-- BUNDLE Field (DISABLED) -->
-                    <label>BUNDLE:</label>
-                    {% set bundle_value = request.form.get('BUNDLE', '') or campaign.BUNDLE %}
-                    <select name="BUNDLE" id="BUNDLE" disabled style="background-color: #f0f0f0;">
-                        <option value="0" {% if bundle_value == '0' or bundle_value == 0 %}selected{% endif %}>0</option>
-                        <option value="1" {% if bundle_value == '1' or bundle_value == 1 %}selected{% endif %}>1</option>
-                    </select>
-                    <!-- Hidden input to submit BUNDLE value -->
-                    <input type="hidden" name="BUNDLE" value="{{ bundle_value if bundle_value is not none else '0' }}">
-                    <br><br>
-                {% endif %}
-            {% endif %}
-        {% endfor %}
+    <div class="nav-buttons">
+        <a href="/campaigns" class="nav-btn">Back to Campaign Table</a>
+    </div>
+    
+    <div class="edit-form-container">
+        <div class="edit-form-wrapper">
+            <h2>Edit Campaign</h2>
+            <form method="POST">
+                <div class="form-grid">
+                    {% for col, display_col in zip(columns, display_columns) %}
+                        {% if col not in ['TENANTID', 'CAMPAIGNID', 'CREATEDATE', 'RECHARGERNR', 'RECHARGERBR', 'RECHARGETYPE', 'BUNDLETYPE', 'BUNDLE'] %}
+                            <div class="form-group">
+                                <label>{{ display_col }}:</label>
+                                {% if col in ['STARTDATE', 'ENDDATE'] %}
+                                    <!-- Make STARTDATE and ENDDATE editable with proper date format -->
+                                    {% set date_value = request.form.get(col, '') or campaign[col] %}
+                                    <input type="date" name="{{ col }}" value="{{ date_value|string|replace(' 00:00:00', '') if date_value else '' }}">
+                                {% else %}
+                                    <!-- Make only specific fields editable, others readonly -->
+                                    {% set field_value = request.form.get(col, '') or campaign[col] %}
+                                    {% if col in ['CAMPAIGNNAME', 'STATUS', 'FCABUNDLERANGE', 'BVSHITS_TO_FCA_RANGE', 'IFCADATERANGE'] %}
+                                        <input type="text" name="{{ col }}" value="{{ field_value if field_value is not none else '' }}">
+                                    {% else %}
+                                        <!-- For numeric fields, ensure empty values instead of None -->
+                                        <input type="text" name="{{ col }}" value="{{ field_value if field_value is not none else '' }}" readonly>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Insert BUNDLE after BVSHITS -->
+                            {% if col == 'BVSHITS' %}
+                                <!-- BUNDLE Field (DISABLED) -->
+                               <div class="form-group">
+                                <label>Bundle:</label>
+                                {% set bundle_value = request.form.get('BUNDLE', '') or campaign['BUNDLE'] %}
+                                <select name="BUNDLE" id="BUNDLE" disabled style="background-color: #f0f0f0;">
+                                    <option value="0" {% if bundle_value == '0' or bundle_value == 0 %}selected{% endif %}>No</option>
+                                    <option value="1" {% if bundle_value == '1' or bundle_value == 1 or bundle_value == 'Yes' %}selected{% endif %}>Yes</option>
+                                </select>
+                                <!-- Hidden input to submit BUNDLE value -->
+                                <input type="hidden" name="BUNDLE" value="{{ bundle_value if bundle_value is not none else '0' }}">
+                            </div>
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
 
-        <!-- RECHARGETYPE Field -->
-        {% set rechargetype_value = request.form.get('RECHARGETYPE','') or campaign.RECHARGETYPE %}
-        <label>RECHARGETYPE:</label>
-        <input type="text" name="RECHARGETYPE" value="{{ rechargetype_value if rechargetype_value is not none else '' }}" readonly style="background-color: #f0f0f0;">
-        <br><br>
+                    <!-- Dependent fields section -->
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <div class="dependent-fields">
+                            <!-- RECHARGETYPE Field -->
+                            {% set rechargetype_value = request.form.get('RECHARGETYPE','') or campaign['RECHARGETYPE'] %}
+                            <label>Recharge Type:</label>
+                            <input type="text" name="RECHARGETYPE" value="{{ rechargetype_value if rechargetype_value is not none else '' }}" readonly>
+                            
+                            <!-- BUNDLETYPE Field -->
+                            {% set bundletype_value = request.form.get('BUNDLETYPE','') or campaign['BUNDLETYPE'] %}
+                            <label>Bundle Type:</label>
+                            <input type="text" name="BUNDLETYPE" value="{{ bundletype_value if bundletype_value is not none else '' }}" readonly>
+                            
+                            <!-- RECHARGERNR Field -->
+                            {% set rechargernr_value = request.form.get('RECHARGERNR','') or campaign['RECHARGERNR'] %}
+                            <label>Recharge NR:</label>
+                            <input type="text" name="RECHARGERNR" value="{{ rechargernr_value if rechargernr_value is not none else '' }}" readonly>
+                            
+                            <!-- RECHARGERBR Field -->
+                            {% set rechargebr_value = request.form.get('RECHARGERBR','') or campaign['RECHARGERBR'] %}
+                            <label>Recharge BR:</label>
+                            <input type="text" name="RECHARGERBR" value="{{ rechargebr_value if rechargebr_value is not none else '' }}" readonly>
+                        </div>
+                    </div>
+                </div>
 
-        <!-- BUNDLETYPE Field -->
-        {% set bundletype_value = request.form.get('BUNDLETYPE','') or campaign.BUNDLETYPE %}
-        <label>BUNDLETYPE:</label>
-        <input type="text" name="BUNDLETYPE" value="{{ bundletype_value if bundletype_value is not none else '' }}" readonly style="background-color: #f0f0f0;">
-        <br><br>
+                <div class="form-submit">
+                    <button type="submit" class="update-btn">Update Campaign</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script>
+    function toggleRechargeFields() {
+        var bundleValue = "{{ campaign['BUNDLE'] }}"; // Get the actual bundle value from campaign data
+        var rechargeNR = document.querySelector('input[name="RECHARGERNR"]');
+        var rechargeBR = document.querySelector('input[name="RECHARGERBR"]');
+        
+        // If BUNDLE is Yes (1 or 'Yes'), make recharge fields editable
+        if (bundleValue === '1' || bundleValue === 1 || bundleValue === 'Yes') {
+            if (rechargeNR) rechargeNR.readOnly = false;
+            if (rechargeBR) rechargeBR.readOnly = false;
+            if (rechargeNR) rechargeNR.style.backgroundColor = '';
+            if (rechargeBR) rechargeBR.style.backgroundColor = '';
+        } else {
+            if (rechargeNR) rechargeNR.readOnly = true;
+            if (rechargeBR) rechargeBR.readOnly = true;
+            if (rechargeNR) rechargeNR.style.backgroundColor = '#f0f0f0';
+            if (rechargeBR) rechargeBR.style.backgroundColor = '#f0f0f0';
+        }
+    }
 
-        <!-- RECHARGERNR Field -->
-        {% set rechargernr_value = request.form.get('RECHARGERNR','') or campaign.RECHARGERNR %}
-        <label>RECHARGERNR:</label>
-        <input type="text" name="RECHARGERNR" value="{{ rechargernr_value if rechargernr_value is not none else '' }}" readonly style="background-color: #f0f0f0;">
-        <br><br>
-
-        <!-- RECHARGERBR Field -->
-        {% set rechargebr_value = request.form.get('RECHARGERBR','') or campaign.RECHARGERBR %}
-        <label>RECHARGERBR:</label>
-        <input type="text" name="RECHARGERBR" value="{{ rechargebr_value if rechargebr_value is not none else '' }}" readonly style="background-color: #f0f0f0;">
-        <br><br>
-
-        <button type="submit" class="update-btn">Update Campaign</button>
-    </form>
+    // Run on page load
+    window.onload = function() {
+        toggleRechargeFields();
+    };
+</script>
 </body>
 </html>

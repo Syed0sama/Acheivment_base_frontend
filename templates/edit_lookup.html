@@ -10,12 +10,12 @@
         <a href="/lookup" class="nav-btn">Back to Lookup Table</a>
     </div>
     <form method="POST">
-        {% for col, val in zip(columns, lookup) %}
+        {% for col, display_col, val in zip(columns, display_columns, lookup) %}
             {% if col not in ['TENANTID', 'CREATEDATE', 'MODIFICATIONDATE'] %}
-                <label>{{ col }}:</label>
+                <label>{{ display_col }}:</label>
                 {% if col in ['STARTDATE', 'ENDDATE'] %}
-                    <!-- Convert datetime to YYYY-MM-DD format for date input -->
-                    <input type="date" name="{{ col }}" value="{{ val.strftime('%Y-%m-%d') }}">
+                    <!-- Date picker for STARTDATE and ENDDATE with formatted values -->
+                    <input type="date" name="{{ col }}" value="{{ val.strftime('%Y-%m-%d') if val else '' }}">
                 {% else %}
                     <input type="text" name="{{ col }}" value="{{ val if val is not none else '' }}">
                 {% endif %}

@@ -8,26 +8,55 @@ body {
 
 /* Table styling */
 table {
-    width: 100%;
-    border-collapse: collapse; /* makes borders collapse nicely */
+    width: auto; /* Changed from 100% to auto for better column control */
+    min-width: 100%; /* Ensure table takes full width when needed */
+    border-collapse: collapse;
     margin-top: 20px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     background-color: #fff;
-    border: 1px solid #ddd; /* vertical & horizontal borders */
+    border: 1px solid #ddd;
 }
 
+/* Increased column widths for better readability */
 th, td {
     padding: 12px 15px;
     text-align: left;
-    border: 1px solid #ddd; /* adds vertical and horizontal lines */
+    border: 1px solid #ddd;
+    white-space: nowrap; /* Prevent text wrapping */
 }
 
+/* Specific column width adjustments */
+th:nth-child(1), td:nth-child(1) { min-width: 120px; } /* Campaign ID */
+th:nth-child(2), td:nth-child(2) { min-width: 200px; } /* Campaign Name */
+th:nth-child(3), td:nth-child(3) { min-width: 120px; } /* Start Date */
+th:nth-child(4), td:nth-child(4) { min-width: 120px; } /* End Date */
+th:nth-child(5), td:nth-child(5) { min-width: 100px; } /* Status */
+th:nth-child(6), td:nth-child(6) { min-width: 80px; }  /* FCA */
+th:nth-child(7), td:nth-child(7) { min-width: 80px; }  /* IFCA */
+th:nth-child(8), td:nth-child(8) { min-width: 100px; } /* BVS Hits */
+th:nth-child(9), td:nth-child(9) { min-width: 120px; } /* Sales Type */
+th:nth-child(10), td:nth-child(10) { min-width: 150px; } /* FCA Bundle Range */
+th:nth-child(11), td:nth-child(11) { min-width: 150px; } /* Retailer SIM Bundle */
+th:nth-child(12), td:nth-child(12) { min-width: 180px; } /* BVS Hits to FCA Range */
+th:nth-child(13), td:nth-child(13) { min-width: 150px; } /* IFCA Date Range */
+th:nth-child(14), td:nth-child(14) { min-width: 140px; } /* Bundle Price Type */
+th:nth-child(15), td:nth-child(15) { min-width: 140px; } /* Price Type Value */
+th:nth-child(16), td:nth-child(16) { min-width: 80px; }  /* Bundle */
+th:nth-child(17), td:nth-child(17) { min-width: 120px; } /* Recharge Type */
+th:nth-child(18), td:nth-child(18) { min-width: 120px; } /* Bundle Type */
+th:nth-child(19), td:nth-child(19) { min-width: 120px; } /* Recharge NR */
+th:nth-child(20), td:nth-child(20) { min-width: 120px; } /* Recharge BR */
+th:nth-child(21), td:nth-child(21) { min-width: 120px; } /* Create Date */
+th:last-child, td:last-child { min-width: 150px; } /* Actions column */
 
 th {
     background-color: #2f3640;
     color: #fff;
     text-transform: uppercase;
     font-size: 14px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
 tr:nth-child(even) {
@@ -38,8 +67,18 @@ tr:hover {
     background-color: #dcdde1;
 }
 
+/* Table wrapper for horizontal scrolling */
+.table-wrapper {
+    overflow-x: auto;
+    margin-top: 20px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
 /* Buttons styling */
-a, input[type="submit"],button {
+a, input[type="submit"], button {
     display: inline-block;
     padding: 8px 15px;
     margin: 5px 0;
@@ -59,11 +98,25 @@ a.back-btn {
 
 a.add-btn {
     background-color: #273c75;
-    
 }
 
-a:hover, input[type="submit"]:hover {
+a.edit-btn {
+    background-color: #f39c12;
+    padding: 6px 12px;
+    font-size: 12px;
+    margin: 2px;
+}
+
+a.delete-btn {
+    background-color: #e74c3c;
+    padding: 6px 12px;
+    font-size: 12px;
+    margin: 2px;
+}
+
+a:hover, input[type="submit"]:hover, button:hover {
     opacity: 0.85;
+    transform: translateY(-1px);
 }
 
 /* Heading */
@@ -94,6 +147,12 @@ form {
 
 /* Navigation buttons on top of the page */
 .nav-buttons {
+    position: sticky;
+    top: 0;
+    background-color: #f5f6fa;
+    padding: 15px 0;
+    z-index: 1000;
+    border-bottom: 2px solid #ddd;
     margin-bottom: 20px;
 }
 
@@ -106,45 +165,13 @@ form {
     text-decoration: none;
     border-radius: 4px;
     transition: background-color 0.3s ease;
+    font-weight: bold;
 }
 
 .nav-btn:hover {
     background-color: #2980b9;
+    transform: translateY(-1px);
 }
-
-
-/* Table wrapper for horizontal scrolling */
-.table-wrapper {
-    overflow-x: auto;
-}
-
-/* Sticky navigation buttons */
-.nav-buttons {
-    position: sticky;
-    top: 0;
-    background-color: #f5f6fa; /* matches your body bg */
-    padding: 10px 0;
-    z-index: 1000;
-    border-bottom: 1px solid #ddd;
-}
-
-/* Optional: keep nav buttons aligned nicely */
-.nav-buttons .nav-btn {
-    margin-right: 10px;
-}
-
-
-.nav-buttons {
-    position: sticky;
-    top: 0;
-    background: #f5f6fa;
-    z-index: 10;
-    padding: 10px 0;
-}
-.table-container {
-    overflow-x: auto;
-}
-
 
 /* Dropdown styling with arrow */
 select {
@@ -157,14 +184,14 @@ select {
     background-color: #fff;
     font-size: 14px;
     color: #333;
-    appearance: none; /* remove default arrow */
+    appearance: none;
     -webkit-appearance: none;
     -moz-appearance: none;
     background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg width='10' height='5' viewBox='0 0 10 5' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0l5 5 5-5H0z' fill='%23333'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 10px center;
     background-size: 10px 5px;
-    padding-right: 30px; /* leave space for arrow */
+    padding-right: 30px;
     transition: 0.3s ease;
 }
 
@@ -174,15 +201,303 @@ select:hover, select:focus {
     outline: none;
 }
 
+/* Upload styles */
+.upload-container {
+    max-width: 800px;
+    margin: 20px auto;
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
 
+.instructions {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    border-left: 4px solid #3498db;
+}
 
+.instructions h3 {
+    margin-top: 0;
+    color: #2c3e50;
+}
 
+.instructions ol {
+    margin-bottom: 0;
+}
 
+.upload-form {
+    margin: 30px 0;
+}
 
+.form-group {
+    margin-bottom: 20px;
+}
 
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #2c3e50;
+}
 
+.form-group input[type="file"] {
+    width: 100%;
+    padding: 10px;
+    border: 2px dashed #bdc3c7;
+    border-radius: 6px;
+    background: #f8f9fa;
+}
 
+.upload-btn {
+    background-color: #27ae60;
+    color: white;
+    padding: 12px 30px;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
 
+.upload-btn:hover {
+    background-color: #219a52;
+}
 
+.download-btn {
+    background-color: #e67e22;
+}
 
+.download-btn:hover {
+    background-color: #d35400;
+}
 
+.result-message {
+    padding: 20px;
+    border-radius: 6px;
+    margin-top: 20px;
+}
+
+.result-message.success {
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+}
+
+.result-message.warning {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    color: #856404;
+}
+
+.result-message h3 {
+    margin-top: 0;
+}
+
+/* Scrollbar styling for better appearance */
+.table-wrapper::-webkit-scrollbar {
+    height: 12px;
+}
+
+.table-wrapper::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 6px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 6px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    body {
+        margin: 10px;
+    }
+    
+    .table-wrapper {
+        font-size: 12px;
+    }
+    
+    th, td {
+        padding: 8px 10px;
+    }
+    
+    .nav-btn {
+        display: block;
+        margin-bottom: 10px;
+        text-align: center;
+    }
+}
+
+/* Action buttons container */
+td:last-child {
+    white-space: nowrap;
+    text-align: center;
+}
+
+/* Readonly field styling */
+input[readonly] {
+    background-color: #f8f9fa;
+    color: #6c757d;
+    cursor: not-allowed;
+}
+
+/* Edit Campaign Form Styling */
+.edit-form-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 80vh;
+    padding: 20px;
+}
+
+.edit-form-wrapper {
+    width: 90%;
+    max-width: 1200px; /* Much wider than before */
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.edit-form-wrapper h2 {
+    text-align: center;
+    margin-bottom: 30px;
+    color: #2f3640;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 15px;
+}
+
+.edit-form-wrapper form {
+    max-width: none; /* Remove the max-width constraint */
+    width: 100%;
+    background: none;
+    box-shadow: none;
+    padding: 0;
+}
+
+/* Form grid layout for better organization */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.form-group {
+    margin-bottom: 0; /* Reset for grid layout */
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #2c3e50;
+    font-size: 14px;
+}
+
+.form-group input[type="text"],
+.form-group input[type="date"],
+.form-group select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: border-color 0.3s ease;
+    box-sizing: border-box;
+}
+
+.form-group input[type="text"]:focus,
+.form-group input[type="date"]:focus,
+.form-group select:focus {
+    border-color: #3498db;
+    outline: none;
+    box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+}
+
+/* Readonly fields styling */
+.form-group input[readonly] {
+    background-color: #f8f9fa;
+    color: #6c757d;
+    cursor: not-allowed;
+    border-color: #e9ecef;
+}
+
+/* Submit button styling */
+.form-submit {
+    grid-column: 1 / -1;
+    text-align: center;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.update-btn {
+    background-color: #27ae60;
+    color: white;
+    padding: 12px 40px;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 200px;
+}
+
+.update-btn:hover {
+    background-color: #219a52;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+}
+
+/* Dependent fields group styling */
+.dependent-fields {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 6px;
+    border-left: 4px solid #3498db;
+    margin: 20px 0;
+}
+
+.dependent-fields label {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+/* Nested recharge fields */
+.recharge-fields {
+    background: #e8f4fd;
+    padding: 15px;
+    border-radius: 4px;
+    border-left: 3px solid #2980b9;
+    margin: 15px 0;
+}
+
+/* Responsive design for edit form */
+@media (max-width: 768px) {
+    .edit-form-wrapper {
+        width: 95%;
+        padding: 20px;
+    }
+    
+    .form-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .update-btn {
+        width: 100%;
+        min-width: auto;
+    }
+}
+
+/* Add these styles to your existing CSS file */

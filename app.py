@@ -1,7 +1,11 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, send_file
 from hdbcli import dbapi
 from dotenv import load_dotenv
 import os
+import pandas as pd
+import re
+from io import BytesIO
+
 
 load_dotenv()
 
@@ -20,6 +24,55 @@ CAMPAIGN_TABLE = "ACH_FCA_CAMPAIGN"
 LOOKUP_TABLE = "ACH_FCA_LOOKUP"
 LOGS_TABLE = "ACH_FCA_LOGS"
 
+# Column name mapping for user-friendly display
+COLUMN_DISPLAY_NAMES = {
+    'TENANTID': 'Tenant ID',
+    'CAMPAIGNID': 'Campaign ID',
+    'CREATEDATE': 'Create Date',
+    'CAMPAIGNNAME': 'Campaign Name',
+    'STARTDATE': 'Start Date',
+    'ENDDATE': 'End Date',
+    'STATUS': 'Status',
+    'FCA': 'FCA',
+    'IFCA': 'IFCA',
+    'BVSHITS': 'BVS Hits',
+    'SALESTYPE': 'Sales Type',
+    'FCABUNDLERANGE': 'FCA Bundle Range',
+    'RETSIMBUN': 'Retailer SIM Bundle',
+    'BVSHITS_TO_FCA_RANGE': 'BVS Hits to FCA Range',
+    'IFCADATERANGE': 'IFCA Date Range',
+    'BUNDLEPRICETYPE': 'Bundle Price Type',
+    'PRICETYPEVALUE': 'Price Type Value',
+    'BUNDLE': 'Bundle',
+    'RECHARGETYPE': 'Recharge Type',
+    'BUNDLETYPE': 'Bundle Type',
+    'RECHARGERNR': 'Recharge NR',
+    'RECHARGERBR': 'Recharge BR',
+    'RETAILERID': 'Retailer ID',
+    'PRODUCTID': 'Product ID',
+    'TARGET': 'Target',
+    'COMMISSION': 'Commission',
+    'MIN': 'Min',
+    'MAX': 'Max',
+    'CAP': 'Cap',
+    'MODIFICATIONDATE': 'Modification Date'
+}
+
+# Function to convert column names to display names and handle special values
+def get_display_name(column_name):
+    return COLUMN_DISPLAY_NAMES.get(column_name, column_name)
+
+# Function to convert 1/0 values to Yes/No for specific columns
+def convert_yes_no(value, column_name):
+    if column_name in ['FCA', 'IFCA', 'BVSHITS', 'BUNDLE']:
+        if value == 1 or value == '1':
+            return 'Yes'
+        elif value == 0 or value == '0':
+            return 'No'
+        elif value is None:
+            return ''
+    return value
+
 # -----------------------------
 # Home / Welcome screen
 # -----------------------------
@@ -27,9 +80,8 @@ LOGS_TABLE = "ACH_FCA_LOGS"
 def home():
     return render_template("home.html")
 
-
 # -----------------------------
-# Campaigns Table (unchanged)
+# Campaigns Table
 # -----------------------------
 @app.route("/campaigns")
 def campaigns():
@@ -38,22 +90,23 @@ def campaigns():
     rows = cursor.fetchall()
     columns = [c[0] for c in cursor.description]
 
-    # Conditional: add RECHARGERNR and RECHARGERBR columns if RECHARGETYPE='RECHARGER'
-    extended_columns = columns.copy()
+    # Create display columns - include ALL columns
+    display_columns = [get_display_name(col) for col in columns]
+
+    # Convert rows to lists for template and convert 1/0 to Yes/No
     extended_rows = []
     for row in rows:
-        row_list = list(row)
-        if 'RECHARGETYPE' in columns:
-            idx = columns.index('RECHARGETYPE')
-            if row[idx] == 'RECHARGER':
-                row_list.append(row[columns.index('RECHARGERNR')])
-                row_list.append(row[columns.index('RECHARGERBR')])
-                if 'RECHARGERNR' not in extended_columns:
-                    extended_columns.extend(['RECHARGERNR', 'RECHARGERBR'])
+        row_list = []
+        for i, value in enumerate(row):
+            converted_value = convert_yes_no(value, columns[i])
+            row_list.append(converted_value)
         extended_rows.append(row_list)
 
-    return render_template("campaigns.html", rows=extended_rows, columns=extended_columns, zip=zip)
-
+    return render_template("campaigns.html", 
+                         rows=extended_rows, 
+                         columns=columns,
+                         display_columns=display_columns, 
+                         zip=zip)
 
 @app.route("/campaigns/add", methods=["GET", "POST"])
 def add_campaign():
@@ -62,12 +115,24 @@ def add_campaign():
     if request.method == "POST":
         def empty_to_none(val):
             return None if val == '' else val
+        
+        def yes_no_to_int(val):
+            # Convert Yes/No back to 1/0 for database
+            if val == 'Yes' or val == '1':
+                return 1
+            elif val == 'No' or val == '0':
+                return 0
+            return empty_to_none(val)
 
         # Collect all form values except TENANTID, CAMPAIGNID, CREATEDATE
         data = {}
         for key, val in request.form.items():
             if key not in ['TENANTID', 'CAMPAIGNID', 'CREATEDATE']:
-                data[key] = empty_to_none(val)
+                # Convert Yes/No back to 1/0 for FCA, IFCA, BVSHITS, BUNDLE
+                if key in ['FCA', 'IFCA', 'BVSHITS', 'BUNDLE']:
+                    data[key] = yes_no_to_int(val)
+                else:
+                    data[key] = empty_to_none(val)
 
         # Clear recharge fields if RECHARGETYPE != RECHARGER
         if data.get('RECHARGETYPE') != 'RECHARGER':
@@ -91,8 +156,13 @@ def add_campaign():
     # Exclude dependent fields from main loop
     columns = [c for c in all_columns if c not in ['BUNDLE', 'RECHARGETYPE', 'BUNDLETYPE', 'RECHARGERNR', 'RECHARGERBR']]
 
-    return render_template("add_campaign.html", columns=columns, zip=zip)
+    # Create display columns
+    display_columns = [get_display_name(col) for col in columns]
 
+    return render_template("add_campaign.html", 
+                         columns=columns, 
+                         display_columns=display_columns, 
+                         zip=zip)
 
 @app.route("/campaigns/edit/<int:campaignid>", methods=["GET", "POST"])
 def edit_campaign(campaignid):
@@ -145,11 +215,19 @@ def edit_campaign(campaignid):
     campaign = cursor.fetchone()
     columns = [c[0] for c in cursor.description]
     
-    # Convert row to dictionary for easier access in template
-    campaign_dict = dict(zip(columns, campaign))
+    # Convert row to dictionary for easier access in template and convert 1/0 to Yes/No
+    campaign_dict = {}
+    for i, col in enumerate(columns):
+        campaign_dict[col] = convert_yes_no(campaign[i], col)
 
-    return render_template("edit_campaign.html", campaign=campaign_dict, columns=columns, zip=zip)
+    # Create display columns
+    display_columns = [get_display_name(col) for col in columns]
 
+    return render_template("edit_campaign.html", 
+                         campaign=campaign_dict, 
+                         columns=columns, 
+                         display_columns=display_columns,
+                         zip=zip)
 
 @app.route("/campaigns/delete/<int:campaignid>")
 def delete_campaign(campaignid):
@@ -158,6 +236,275 @@ def delete_campaign(campaignid):
     conn.commit()
     return redirect(url_for("campaigns"))
 
+# -----------------------------
+# Excel Upload/Download Routes
+# -----------------------------
+@app.route("/campaigns/download-template")
+def download_campaign_template():
+    """Download Excel template with instructions in right columns"""
+    try:
+        import io
+        
+        # Create main data DataFrame
+        data = {
+            'CAMPAIGNNAME': ['Sample Campaign', '', '', ''],
+            'STARTDATE': ['2025-01-01', '', '', ''],
+            'ENDDATE': ['2025-12-31', '', '', ''],
+            'STATUS': ['1', '', '', ''],
+            'FCA': ['1', '', '', ''],
+            'IFCA': ['0', '', '', ''],
+            'BVSHITS': ['1', '', '', ''],
+            'BUNDLE': ['0', '', '', ''],
+            'SALESTYPE': ['MNP', '', '', ''],
+            'FCABUNDLERANGE': ['10', '', '', ''],
+            'RETSIMBUN': ['', '', '', ''],
+            'BVSHITS_TO_FCA_RANGE': ['5', '', '', ''],
+            'IFCADATERANGE': ['10', '', '', ''],
+            'BUNDLEPRICETYPE': ['RANGE', '', '', ''],
+            'PRICETYPEVALUE': ['100-200;200-300;400-500', '', '', ''],
+            'RECHARGETYPE': ['RECHARGER', '', '', ''],
+            'BUNDLETYPE': ['POWER LOAD', '', '', ''],
+            'RECHARGERNR': ['100', '', '', ''],
+            'RECHARGERBR': ['100.5', '', '', '']
+        }
+        
+        df = pd.DataFrame(data)
+        
+        output = io.BytesIO()
+        
+        # Create Excel file with openpyxl
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Template')
+            
+            # Get the worksheet
+            workbook = writer.book
+            worksheet = writer.sheets['Template']
+            
+            from openpyxl.styles import Font
+            
+            # STEP 1: Pre-format date columns as TEXT for ALL rows
+            date_columns = ['STARTDATE', 'ENDDATE']
+            date_col_indices = []
+            
+            # Find column indices for date columns
+            for col_idx, col_name in enumerate(df.columns, 1):
+                if col_name in date_columns:
+                    date_col_indices.append(col_idx)
+            
+            # Apply text format to date columns for ALL rows
+            for col_idx in date_col_indices:
+                for row_idx in range(1, len(df) + 2):
+                    worksheet.cell(row=row_idx, column=col_idx).number_format = '@'
+            
+            # STEP 2: Apply styling to main data area
+            # Grey font for sample row (row 2)
+            grey_font = Font(color="808080")
+            for col in range(1, len(df.columns) + 1):
+                cell = worksheet.cell(row=2, column=col)
+                cell.font = grey_font
+            
+            # Bold headers (row 1)
+            header_font = Font(bold=True)
+            for col in range(1, len(df.columns) + 1):
+                worksheet.cell(row=1, column=col).font = header_font
+            
+            # STEP 3: Add instructions in right columns
+            # Add spacing (2 empty columns)
+            spacer_col1 = len(df.columns) + 1
+            spacer_col2 = len(df.columns) + 2
+            
+            # Instructions column
+            instructions_col = len(df.columns) + 3
+            
+            # Add instruction headers
+            worksheet.cell(row=1, column=instructions_col, value="INSTRUCTIONS").font = Font(bold=True, color="FF0000")
+            
+            # Add instructions for each row
+            instructions_data = {
+                2: "SAMPLE DATA - This row will be ignored during upload",
+                3: "ENTER YOUR DATA HERE Required fields: Campaign Name, Start Date, End Date, STATUS",
+                4: "FCA, IFCA, BVSHITS, BUNDLE: Use 1 for Yes, 0 for No",
+                5: "DATES: Use YYYY-MM-DD format ",
+                6: "STATUS: Use 1 for Active, 0 for Inactive",
+                7: "SALESTYPE: MNP, BYN, NPP, MNPBVS_NEW, e_SIM_BYN, D2C",
+                8: "RECHARGETYPE: RECHARGER, BUNDLE, NORMAL RECHARGE, ALL",
+                9: "BUNDLETYPE: POWER LOAD, DIGITAL, ADC, FS, ALL",
+                10: "Clear RECHARGERNR & RECHARGERBR if RECHARGETYPE IS NOT EQULAS TO RECHARGER",
+                11: "PRICETYPEVALUE: Use semicolons for multiple ranges (100-200;200-300)",
+                12: "Dates must be valid (e.g., no 2025-06-31 - June has 30 days)",
+                13:"Add more campaigns below",
+                14:"Save file before uploading",
+            }
+
+
+            
+            for row, instruction in instructions_data.items():
+                worksheet.cell(row=row, column=instructions_col, value=instruction)
+            
+            # Set column widths for better visibility
+            worksheet.column_dimensions[chr(64 + instructions_col)].width = 50
+        
+        output.seek(0)
+        
+        return send_file(
+            output,
+            as_attachment=True,
+            download_name='campaign_template.xlsx',
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        
+    except Exception as e:
+        return f"Error generating template: {str(e)}", 500
+    
+    
+@app.route("/campaigns/upload", methods=["GET", "POST"])
+def upload_campaigns():
+    """Handle Excel file upload - ignore instruction columns safely"""
+    if request.method == "GET":
+        return render_template("upload_campaign.html")
+
+    if request.method == "POST":
+        try:
+            if 'file' not in request.files:
+                return "No file uploaded", 400
+
+            file = request.files['file']
+            if file.filename == '':
+                return "No file selected", 400
+
+            if not file.filename.endswith(('.xlsx', '.xls')):
+                return "Please upload an Excel file", 400
+
+            # Expected REAL columns only (19)
+            expected_columns = [
+                'CAMPAIGNNAME', 'STARTDATE', 'ENDDATE', 'STATUS', 'FCA', 'IFCA',
+                'BVSHITS', 'BUNDLE', 'SALESTYPE', 'FCABUNDLERANGE', 'RETSIMBUN',
+                'BVSHITS_TO_FCA_RANGE', 'IFCADATERANGE', 'BUNDLEPRICETYPE',
+                'PRICETYPEVALUE', 'RECHARGETYPE', 'BUNDLETYPE',
+                'RECHARGERNR', 'RECHARGERBR'
+            ]
+
+            # Read full Excel sheet but as strings
+            df = pd.read_excel(file, dtype=str)
+
+            print("=== DEBUG: Original Columns ===")
+            print(df.columns.tolist())
+            print("===============================")
+
+            # Force pandas to keep ONLY the valid 19 columns
+            # (Ignore any instruction / extra columns safely)
+            df = df.reindex(columns=expected_columns)
+
+            print("=== DEBUG: After Filtering to Expected Columns ===")
+            print(df.columns.tolist())
+            print("===============================")
+
+            # Skip sample row & empty rows
+            df = df.iloc[1:]
+            df = df.dropna(how='all')
+
+            success_count = 0
+            error_count = 0
+            errors = []
+            cursor = conn.cursor()
+
+            for index, row in df.iterrows():
+                if row.isna().all():
+                    continue
+
+                data = {}
+
+                # Loop through expected columns
+                for col in expected_columns:
+                    value = row[col]
+
+                    # Normalize nulls
+                    if pd.isna(value) or str(value).strip() in ['', 'nan', 'None']:
+                        value = None
+                    else:
+                        value = str(value).strip()
+
+                    # Convert status
+                    if col == 'STATUS' and value is not None:
+                        v = value.lower()
+                        if v in ['1', 'active', 'yes', 'true', 'y']:
+                            value = 1
+                        elif v in ['0', 'inactive', 'no', 'false', 'n']:
+                            value = 0
+                        else:
+                            value = None
+
+                    # Convert FCA/IFCA/BVSHITS/BUNDLE
+                    if col in ['FCA', 'IFCA', 'BVSHITS', 'BUNDLE'] and value is not None:
+                        v = value.lower()
+                        if v in ['1', 'yes', 'true', 'y']:
+                            value = 1
+                        elif v in ['0', 'no', 'false', 'n']:
+                            value = 0
+                        else:
+                            value = None
+
+                    # Convert date formats (YYYY-MM-DD)
+                    if col in ['STARTDATE', 'ENDDATE'] and value is not None:
+                        try:
+                            parsed = pd.to_datetime(value)
+                            value = parsed.strftime('%Y-%m-%d')
+                        except:
+                            pass
+
+                    data[col] = value
+
+                # Required field validations
+                if not data['CAMPAIGNNAME']:
+                    errors.append(f"Row {index+3}: CAMPAIGNNAME is required")
+                    error_count += 1
+                    continue
+
+                if not data['STARTDATE']:
+                    errors.append(f"Row {index+3}: STARTDATE is required")
+                    error_count += 1
+                    continue
+
+                if not data['ENDDATE']:
+                    errors.append(f"Row {index+3}: ENDDATE is required")
+                    error_count += 1
+                    continue
+
+                if data['STATUS'] is None:
+                    errors.append(f"Row {index+3}: STATUS is required (use 1 or 0)")
+                    error_count += 1
+                    continue
+
+                # Clear RECHARGER fields if RECHARGETYPE != RECHARGER
+                if data.get('RECHARGETYPE') != 'RECHARGER':
+                    data['RECHARGERNR'] = None
+                    data['RECHARGERBR'] = None
+
+                # Insert into database
+                cols = list(data.keys())
+                vals = list(data.values())
+                placeholders = ",".join(["?" for _ in cols])
+
+                query = f'INSERT INTO "{SCHEMA}"."{CAMPAIGN_TABLE}" ({",".join(cols)}) VALUES ({placeholders})'
+                cursor.execute(query, tuple(vals))
+                success_count += 1
+
+            conn.commit()
+
+            # Response message
+            result = f"Imported: {success_count}, Errors: {error_count}"
+            if errors:
+                result += "<br><br>" + "<br>".join(errors)
+
+            return render_template("upload_campaign.html",
+                                   result_message=result,
+                                   success_count=success_count,
+                                   error_count=error_count)
+
+        except Exception as e:
+            conn.rollback()
+            return render_template("upload_campaign.html",
+                                   result_message=f"Upload failed: {str(e)}")
 
 # -----------------------------
 # Lookup Table
@@ -168,8 +515,15 @@ def lookup():
     cursor.execute(f'SELECT * FROM "{SCHEMA}"."{LOOKUP_TABLE}" ORDER BY CAMPAIGNID')
     rows = cursor.fetchall()
     columns = [c[0] for c in cursor.description]
-    return render_template("lookup.html", rows=rows, columns=columns, zip=zip)
-
+    
+    # Create display columns
+    display_columns = [get_display_name(col) for col in columns]
+    
+    return render_template("lookup.html", 
+                         rows=rows, 
+                         columns=columns, 
+                         display_columns=display_columns,
+                         zip=zip)
 
 @app.route("/lookup/add", methods=["GET", "POST"])
 def add_lookup():
@@ -193,7 +547,17 @@ def add_lookup():
         ''', (campaignid, retailerid, productid, startdate, enddate, target, commission, min_val, max_val, cap))
         conn.commit()
         return redirect(url_for("lookup"))
-    return render_template("add_lookup.html")
+    
+    # For GET request, show the form with display names
+    cursor = conn.cursor()
+    cursor.execute(f'SELECT * FROM "{SCHEMA}"."{LOOKUP_TABLE}" LIMIT 1')
+    columns = [c[0] for c in cursor.description]
+    display_columns = [get_display_name(col) for col in columns]
+    
+    return render_template("add_lookup.html", 
+                         columns=columns, 
+                         display_columns=display_columns,
+                         zip=zip)
 
 @app.route("/lookup/edit/<int:campaignid>/<retailerid>/<productid>", methods=["GET", "POST"])
 def edit_lookup(campaignid, retailerid, productid):
@@ -233,9 +597,14 @@ def edit_lookup(campaignid, retailerid, productid):
     lookup_row = cursor.fetchone()
     columns = [c[0] for c in cursor.description]
 
-    return render_template("edit_lookup.html", lookup=lookup_row, columns=columns, zip=zip)
+    # Create display columns
+    display_columns = [get_display_name(col) for col in columns]
 
-
+    return render_template("edit_lookup.html", 
+                         lookup=lookup_row, 
+                         columns=columns, 
+                         display_columns=display_columns,
+                         zip=zip)
 
 @app.route("/lookup/delete/<int:campaignid>/<retailerid>/<productid>")
 def delete_lookup(campaignid, retailerid, productid):
@@ -247,7 +616,6 @@ def delete_lookup(campaignid, retailerid, productid):
     conn.commit()
     return redirect(url_for("lookup"))
 
-
 # -----------------------------
 # Logs Table
 # -----------------------------
@@ -257,8 +625,15 @@ def logs():
     cursor.execute(f'SELECT * FROM "{SCHEMA}"."{LOGS_TABLE}" ORDER BY COMPENSATIONDATE DESC')
     rows = cursor.fetchall()
     columns = [c[0] for c in cursor.description]
-    return render_template("logs.html", rows=rows, columns=columns, zip=zip)
-
+    
+    # Create display columns
+    display_columns = [get_display_name(col) for col in columns]
+    
+    return render_template("logs.html", 
+                         rows=rows, 
+                         columns=columns, 
+                         display_columns=display_columns,
+                         zip=zip)
 
 # -----------------------------
 # Run server

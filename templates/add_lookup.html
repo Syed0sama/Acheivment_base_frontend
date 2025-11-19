@@ -5,42 +5,25 @@
     <title>Add Lookup</title>
 </head>
 <body>
-    <h2>Add New Lookup</h2>
+    <h2>Add Lookup Entry</h2>
     <div class="nav-buttons">
         <a href="/lookup" class="nav-btn">Back to Lookup Table</a>
     </div>
     <form method="POST">
-        <label>CAMPAIGNID:</label>
-        <input type="text" name="CAMPAIGNID" required><br><br>
+        {% for col, display_col in zip(columns, display_columns) %}
+            {% if col not in ['TENANTID', 'CREATEDATE', 'MODIFICATIONDATE'] %}
+                <label>{{ display_col }}:</label>
+                {% if col in ['STARTDATE', 'ENDDATE'] %}
+                    <!-- Date picker for STARTDATE and ENDDATE -->
+                    <input type="date" name="{{ col }}" value="{{ request.form.get(col, '') }}">
+                {% else %}
+                    <input type="text" name="{{ col }}" value="{{ request.form.get(col, '') }}">
+                {% endif %}
+                <br><br>
+            {% endif %}
+        {% endfor %}
 
-        <label>RETAILERID:</label>
-        <input type="text" name="RETAILERID" required><br><br>
-
-        <label>PRODUCTID:</label>
-        <input type="text" name="PRODUCTID" required><br><br>
-
-        <label>STARTDATE:</label>
-        <input type="date" name="STARTDATE" required><br><br>
-
-        <label>ENDDATE:</label>
-        <input type="date" name="ENDDATE" required><br><br>
-
-        <label>TARGET:</label>
-        <input type="number" name="TARGET"><br><br>
-
-        <label>COMMISSION:</label>
-        <input type="number" name="COMMISSION"><br><br>
-
-        <label>MIN:</label>
-        <input type="number" name="MIN"><br><br>
-
-        <label>MAX:</label>
-        <input type="number" name="MAX"><br><br>
-
-        <label>CAP:</label>
-        <input type="number" name="CAP"><br><br>
-
-        <button type="submit">Add</button>
+        <button type="submit" class="add-btn">Add Lookup Entry</button>
     </form>
 </body>
 </html>
