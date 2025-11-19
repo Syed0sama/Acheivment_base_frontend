@@ -12,18 +12,19 @@
     <form method="POST">
         {% for col, display_col in zip(columns, display_columns) %}
             {% if col not in ['TENANTID', 'CREATEDATE', 'MODIFICATIONDATE'] %}
-                <label>{{ display_col }}:</label>
+                <label>{{ display_col }}:{% if col in ['CAMPAIGNID', 'RETAILERID', 'PRODUCTID'] %}*{% endif %}</label>
                 {% if col in ['STARTDATE', 'ENDDATE'] %}
                     <!-- Date picker for STARTDATE and ENDDATE -->
-                    <input type="date" name="{{ col }}" value="{{ request.form.get(col, '') }}">
+                    <input type="date" name="{{ col }}" value="{{ request.form.get(col, '') }}" {% if col in ['CAMPAIGNID', 'RETAILERID', 'PRODUCTID'] %}required{% endif %}>
                 {% else %}
-                    <input type="text" name="{{ col }}" value="{{ request.form.get(col, '') }}">
+                    <input type="text" name="{{ col }}" value="{{ request.form.get(col, '') }}" {% if col in ['CAMPAIGNID', 'RETAILERID', 'PRODUCTID'] %}required{% endif %}>
                 {% endif %}
                 <br><br>
             {% endif %}
         {% endfor %}
 
         <button type="submit" class="add-btn">Add Lookup Entry</button>
+        <p style="color: #666; font-size: 14px; margin-top: 10px;">* Required fields</p>
     </form>
 </body>
 </html>

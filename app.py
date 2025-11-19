@@ -530,14 +530,29 @@ def add_lookup():
     if request.method == "POST":
         campaignid = request.form["CAMPAIGNID"]
         retailerid = request.form["RETAILERID"]
-        productid = request.form["PRODUCTID"]
-        startdate = request.form["STARTDATE"]
-        enddate = request.form["ENDDATE"]
-        target = request.form["TARGET"]
-        commission = request.form["COMMISSION"]
-        min_val = request.form["MIN"]
-        max_val = request.form["MAX"]
-        cap = request.form["CAP"]
+        productid = request.form["PRODUCTID"]  # Now required
+        startdate = request.form.get("STARTDATE") or None
+        enddate = request.form.get("ENDDATE") or None
+        
+        # Convert empty strings to None for numeric fields
+        target = request.form.get("TARGET")
+        target = int(target) if target and target.strip() else None
+        
+        commission = request.form.get("COMMISSION") 
+        commission = float(commission) if commission and commission.strip() else None
+        
+        min_val = request.form.get("MIN")
+        min_val = float(min_val) if min_val and min_val.strip() else None
+        
+        max_val = request.form.get("MAX")
+        max_val = float(max_val) if max_val and max_val.strip() else None
+        
+        cap = request.form.get("CAP")
+        cap = float(cap) if cap and cap.strip() else None
+
+        # Validate required fields
+        if not campaignid or not retailerid or not productid:
+            return "CAMPAIGNID, RETAILERID and PRODUCTID are required fields", 400
 
         cursor = conn.cursor()
         cursor.execute(f'''

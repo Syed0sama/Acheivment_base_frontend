@@ -1,29 +1,45 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
     <title>Edit Lookup</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h2>Edit Lookup</h2>
     <div class="nav-buttons">
         <a href="/lookup" class="nav-btn">Back to Lookup Table</a>
     </div>
-    <form method="POST">
-        {% for col, display_col, val in zip(columns, display_columns, lookup) %}
-            {% if col not in ['TENANTID', 'CREATEDATE', 'MODIFICATIONDATE'] %}
-                <label>{{ display_col }}:</label>
-                {% if col in ['STARTDATE', 'ENDDATE'] %}
-                    <!-- Date picker for STARTDATE and ENDDATE with formatted values -->
-                    <input type="date" name="{{ col }}" value="{{ val.strftime('%Y-%m-%d') if val else '' }}">
-                {% else %}
-                    <input type="text" name="{{ col }}" value="{{ val if val is not none else '' }}">
-                {% endif %}
-                <br><br>
-            {% endif %}
-        {% endfor %}
+    
+    <div class="edit-form-container">
+        <div class="edit-form-wrapper">
+            <h2>Edit Lookup Entry</h2>
+            <form method="POST">
+                <div class="form-grid">
+                    {% for col, display_col in zip(columns, display_columns) %}
+                        {% if col not in ['TENANTID', 'CREATEDATE', 'MODIFICATIONDATE'] %}
+                            <div class="form-group">
+                                <label>{{ display_col }}:{% if col in ['CAMPAIGNID', 'RETAILERID', 'PRODUCTID'] %}*{% endif %}</label>
+                                {% if col in ['STARTDATE', 'ENDDATE'] %}
+                                    <!-- Make STARTDATE and ENDDATE editable with proper date format -->
+                                    {% set date_value = request.form.get(col, '') or lookup[loop.index0] %}
+                                    <input type="date" name="{{ col }}" value="{{ date_value|string|replace(' 00:00:00', '') if date_value else '' }}"
+                                           {% if col in ['CAMPAIGNID', 'RETAILERID', 'PRODUCTID'] %}required{% endif %}>
+                                {% else %}
+                                    <!-- Make all fields editable for lookup -->
+                                    {% set field_value = request.form.get(col, '') or lookup[loop.index0] %}
+                                    <input type="text" name="{{ col }}" value="{{ field_value if field_value is not none else '' }}"
+                                           {% if col in ['CAMPAIGNID', 'RETAILERID', 'PRODUCTID'] %}required{% endif %}>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
 
-        <button type="submit">Update</button>
-    </form>
+                <div class="form-submit">
+                    <button type="submit" class="update-btn">Update Lookup Entry</button>
+                </div>
+                <p style="color: #666; font-size: 14px; margin-top: 10px; text-align: center;">* Required fields</p>
+            </form>
+        </div>
+    </div>
 </body>
 </html>
