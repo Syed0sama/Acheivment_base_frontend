@@ -574,6 +574,241 @@ def add_lookup():
                          display_columns=display_columns,
                          zip=zip)
 
+
+# Lookup Excel Upload/Download Routes
+@app.route("/lookup/download-template")
+def download_lookup_template():
+    """Download Excel template with instructions in right columns"""
+    try:
+        import io
+        
+        # Create main data DataFrame
+        data = {
+            'CAMPAIGNID': ['1', '', '', ''],
+            'RETAILERID': ['RET001', '', '', ''],
+            'PRODUCTID': ['PROD001', '', '', ''],
+            'STARTDATE': ['2025-01-01', '', '', ''],
+            'ENDDATE': ['2025-12-31', '', '', ''],
+            'TARGET': ['100', '', '', ''],
+            'COMMISSION': ['50', '', '', ''],
+            'MIN': ['1', '', '', ''],
+            'MAX': ['10', '', '', ''],
+            'CAP': ['1000', '', '', '']
+        }
+        
+        df = pd.DataFrame(data)
+        
+        output = io.BytesIO()
+        
+        # Create Excel file with openpyxl
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Template')
+            
+            # Get the worksheet
+            workbook = writer.book
+            worksheet = writer.sheets['Template']
+            
+            from openpyxl.styles import Font
+            
+            # STEP 1: Pre-format date columns as TEXT for ALL rows
+            date_columns = ['STARTDATE', 'ENDDATE']
+            date_col_indices = []
+            
+            # Find column indices for date columns
+            for col_idx, col_name in enumerate(df.columns, 1):
+                if col_name in date_columns:
+                    date_col_indices.append(col_idx)
+            
+            # Apply text format to date columns for ALL rows
+            for col_idx in date_col_indices:
+                for row_idx in range(1, len(df) + 2):
+                    worksheet.cell(row=row_idx, column=col_idx).number_format = '@'
+            
+            # STEP 2: Apply styling to main data area
+            # Grey font for sample row (row 2)
+            grey_font = Font(color="808080")
+            for col in range(1, len(df.columns) + 1):
+                cell = worksheet.cell(row=2, column=col)
+                cell.font = grey_font
+            
+            # Bold headers (row 1)
+            header_font = Font(bold=True)
+            for col in range(1, len(df.columns) + 1):
+                worksheet.cell(row=1, column=col).font = header_font
+            
+            # STEP 3: Add instructions in right columns
+            # Add spacing (2 empty columns)
+            spacer_col1 = len(df.columns) + 1
+            spacer_col2 = len(df.columns) + 2
+            
+            # Instructions column
+            instructions_col = len(df.columns) + 3
+            
+            # Add instruction headers
+            worksheet.cell(row=1, column=instructions_col, value="INSTRUCTIONS").font = Font(bold=True, color="FF0000")
+            
+            # Add instructions for each row
+            instructions_data = {
+                2: "SAMPLE DATA - This row will be ignored during upload",
+                3: "ENTER YOUR DATA HERE - Required fields: CAMPAIGNID, RETAILERID, PRODUCTID",
+                4: "CAMPAIGNID: Must exist in campaigns table",
+                5: "RETAILERID: Unique retailer identifier",
+                6: "PRODUCTID: Unique product identifier",
+                7: "DATES: Use YYYY-MM-DD format",
+                8: "TARGET, COMMISSION, MIN, MAX, CAP: Use numeric values",
+                9: "CAMPAIGNID + RETAILERID + PRODUCTID must be unique",
+                10: "Dates must be valid (e.g., no 2025-06-31 - June has 30 days)",
+                11: "Add more lookup entries below",
+                12: "Save file before uploading",
+            }
+            
+            for row, instruction in instructions_data.items():
+                worksheet.cell(row=row, column=instructions_col, value=instruction)
+            
+            # Set column widths for better visibility
+            worksheet.column_dimensions[chr(64 + instructions_col)].width = 50
+        
+        output.seek(0)
+        
+        return send_file(
+            output,
+            as_attachment=True,
+            download_name='lookup_template.xlsx',
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        
+    except Exception as e:
+        return f"Error generating template: {str(e)}", 500
+    
+    
+@app.route("/lookup/upload", methods=["GET", "POST"])
+def upload_lookup():
+    """Handle Excel file upload - ignore instruction columns safely"""
+    if request.method == "GET":
+        return render_template("upload_lookup.html")
+
+    if request.method == "POST":
+        try:
+            if 'file' not in request.files:
+                return "No file uploaded", 400
+
+            file = request.files['file']
+            if file.filename == '':
+                return "No file selected", 400
+
+            if not file.filename.endswith(('.xlsx', '.xls')):
+                return "Please upload an Excel file", 400
+
+            # Expected REAL columns only (10)
+            expected_columns = [
+                'CAMPAIGNID', 'RETAILERID', 'PRODUCTID', 'STARTDATE', 'ENDDATE',
+                'TARGET', 'COMMISSION', 'MIN', 'MAX', 'CAP'
+            ]
+
+            # Read full Excel sheet but as strings
+            df = pd.read_excel(file, dtype=str)
+
+            print("=== DEBUG: Original Columns ===")
+            print(df.columns.tolist())
+            print("===============================")
+
+            # Force pandas to keep ONLY the valid 10 columns
+            # (Ignore any instruction / extra columns safely)
+            df = df.reindex(columns=expected_columns)
+
+            print("=== DEBUG: After Filtering to Expected Columns ===")
+            print(df.columns.tolist())
+            print("===============================")
+
+            # Skip sample row & empty rows
+            df = df.iloc[1:]
+            df = df.dropna(how='all')
+
+            success_count = 0
+            error_count = 0
+            errors = []
+            cursor = conn.cursor()
+
+            for index, row in df.iterrows():
+                if row.isna().all():
+                    continue
+
+                data = {}
+
+                # Loop through expected columns
+                for col in expected_columns:
+                    value = row[col]
+
+                    # Normalize nulls
+                    if pd.isna(value) or str(value).strip() in ['', 'nan', 'None']:
+                        value = None
+                    else:
+                        value = str(value).strip()
+
+                    # Convert numeric fields
+                    if col in ['CAMPAIGNID', 'TARGET', 'COMMISSION', 'MIN', 'MAX', 'CAP'] and value is not None:
+                        try:
+                            value = int(float(value))
+                        except (ValueError, TypeError):
+                            value = None
+
+                    # Convert date formats (YYYY-MM-DD)
+                    if col in ['STARTDATE', 'ENDDATE'] and value is not None:
+                        try:
+                            parsed = pd.to_datetime(value)
+                            value = parsed.strftime('%Y-%m-%d')
+                        except:
+                            pass
+
+                    data[col] = value
+
+                # Required field validations - ONLY these 3 are required
+                if not data['CAMPAIGNID']:
+                    errors.append(f"Row {index+3}: CAMPAIGNID is required")
+                    error_count += 1
+                    continue
+
+                if not data['RETAILERID']:
+                    errors.append(f"Row {index+3}: RETAILERID is required")
+                    error_count += 1
+                    continue
+
+                if not data['PRODUCTID']:
+                    errors.append(f"Row {index+3}: PRODUCTID is required")
+                    error_count += 1
+                    continue
+
+                # All other fields (STARTDATE, ENDDATE, TARGET, etc.) are optional
+                # They can be None/empty
+
+                # Insert into database
+                cols = list(data.keys())
+                vals = list(data.values())
+                placeholders = ",".join(["?" for _ in cols])
+
+                query = f'INSERT INTO "{SCHEMA}"."{LOOKUP_TABLE}" ({",".join(cols)}) VALUES ({placeholders})'
+                cursor.execute(query, tuple(vals))
+                success_count += 1
+
+            conn.commit()
+
+            # Response message
+            result = f"Imported: {success_count}, Errors: {error_count}"
+            if errors:
+                result += "<br><br>" + "<br>".join(errors)
+
+            return render_template("upload_lookup.html",
+                                   result_message=result,
+                                   success_count=success_count,
+                                   error_count=error_count)
+
+        except Exception as e:
+            conn.rollback()
+            return render_template("upload_lookup.html",
+                                   result_message=f"Upload failed: {str(e)}")
+
+
+
 @app.route("/lookup/edit/<int:campaignid>/<retailerid>/<productid>", methods=["GET", "POST"])
 def edit_lookup(campaignid, retailerid, productid):
     cursor = conn.cursor()
@@ -630,6 +865,19 @@ def delete_lookup(campaignid, retailerid, productid):
     ''', (campaignid, retailerid, productid))
     conn.commit()
     return redirect(url_for("lookup"))
+
+#BULK DELETE
+
+@app.route('/lookup/delete_bulk/<int:campaign_id>')
+def delete_bulk_lookup(campaign_id):
+    cursor = conn.cursor()
+    cursor.execute(f'''
+        DELETE FROM "{SCHEMA}"."{LOOKUP_TABLE}" WHERE CAMPAIGNID=?
+    ''', (campaign_id,))
+    conn.commit()
+    return redirect(url_for('lookup'))
+
+
 
 # -----------------------------
 # Logs Table

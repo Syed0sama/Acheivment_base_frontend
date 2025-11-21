@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Upload Lookup</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h2>Upload Lookup Data from Excel</h2>
+    <div class="nav-buttons">
+        <a href="/lookup" class="nav-btn">Back to Lookup Table</a>
+        <a href="/lookup/download-template" class="nav-btn download-btn">Download Template</a>
+        <a href="/lookup/add" class="nav-btn">Add Single Lookup</a>
+    </div>
+
+    <div class="upload-container">
+        <div class="instructions">
+            <h3>Instructions:</h3>
+            <ol>
+                <li>Download the Excel template using the "Download Template" button</li>
+                <li>Fill in your lookup data (CAMPAIGNID must exist in campaigns table)</li>
+                <li>For dates: use YYYY-MM-DD format</li>
+                <li>Do not modify the column headers</li>
+                <li>Upload the completed file below</li>
+            </ol>
+        </div>
+
+        <form method="POST" enctype="multipart/form-data" class="upload-form">
+            <div class="form-group">
+                <label for="file">Select Excel File:</label>
+                <input type="file" name="file" accept=".xlsx,.xls" required>
+            </div>
+            
+            <button type="submit" class="upload-btn">Upload File</button>
+        </form>
+
+        {% if result_message %}
+        <div class="result-message {% if success_count and error_count == 0 %}success{% else %}warning{% endif %}">
+            <h3>Upload Result:</h3>
+            <p>{{ result_message }}</p>
+            {% if success_count %}
+            <p><strong>Successful imports: {{ success_count }}</strong></p>
+            {% endif %}
+            {% if error_count %}
+            <p><strong>Failed imports: {{ error_count }}</strong></p>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>

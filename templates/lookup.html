@@ -3,6 +3,7 @@
 <head>
     <title>Lookup Table</title>
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <h2>Lookup Table</h2>
@@ -10,31 +11,152 @@
         <a href="/" class="nav-btn">Home</a>
         <a href="/campaigns" class="nav-btn">Campaigns</a>
         <a href="/lookup/add" class="nav-btn">Add Lookup</a>
+        <a href="/lookup/upload" class="nav-btn">Upload from Excel</a>
         <a href="/logs" class="nav-btn">Logs</a>
     </div>
-    
-    <table border="1">
-        <thead>
-            <tr>
-                {% for col in display_columns %}
-                    <th>{{ col }}</th>
-                {% endfor %}
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for row in rows %}
+
+    <!-- Bulk delete -->
+    <div class="bulk-delete-container">
+        <label>
+            <input type="checkbox" id="bulkDeleteCheck">
+            Delete all lookups of Campaign ID:
+        </label>
+        <input type="number" id="bulkCampaignId" placeholder="Enter Campaign ID" style="width: 100px;">
+        <button id="bulkDeleteBtn">Delete</button>
+    </div>
+
+    <!-- Search Filter -->
+    <div style="margin:10px 0;">
+        <label for="columnSelect">Search by:</label>
+        <select id="columnSelect" style="padding:5px;margin-right:5px;">
+            <option value="1">CAMPAIGNID</option>
+            <option value="2">RETAILERID</option>
+            <option value="3">PRODUCTID</option>
+            <!-- Add more columns if you want the user to search by them -->
+        </select>
+        <input type="text" id="searchInput" placeholder="Search..." style="padding:5px;width:300px;">
+    </div>
+
+    <div class="table-wrapper">
+        <table id="lookupTable" border="1">
+            <thead>
                 <tr>
-                    {% for val in row %}
-                        <td>{{ val if val is not none else '' }}</td>
+                    <th>Actions</th>
+                    {% for col in columns %}
+                        {% if col != 'TENANTID' and col != 'MODIFICATIONDATE' %}
+                            <th>{{ col }}</th>
+                        {% endif %}
                     {% endfor %}
-                    <td>
-                        <a href="/lookup/edit/{{ row[columns.index('CAMPAIGNID')] }}/{{ row[columns.index('RETAILERID')] }}/{{ row[columns.index('PRODUCTID')] }}" class="edit-btn">Edit</a>
-                        <a href="/lookup/delete/{{ row[columns.index('CAMPAIGNID')] }}/{{ row[columns.index('RETAILERID')] }}/{{ row[columns.index('PRODUCTID')] }}" class="delete-btn" onclick="return confirm('Are you sure?')">Delete</a>
-                    </td>
                 </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                    <tr>
+                        <td>
+                            <!-- Edit icon -->
+                            <a href="/lookup/edit/{{ row[columns.index('CAMPAIGNID')] }}/{{ row[columns.index('RETAILERID')] }}/{{ row[columns.index('PRODUCTID')] }}" 
+                            title="Edit">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </a>
+
+                            <!-- Delete icon -->
+                            <a href="#" 
+                            class="delete-btn" 
+                            data-url="/lookup/delete/{{ row[columns.index('CAMPAIGNID')] }}/{{ row[columns.index('RETAILERID')] }}/{{ row[columns.index('PRODUCTID')] }}"
+                            title="Delete">
+                                <i class="fa-solid fa-trash"></i>
+                            </a>
+                        </td>
+
+                        {% for i in range(columns|length) %}
+                            {% set col_name = columns[i] %}
+                            {% if col_name != 'TENANTID' and col_name != 'MODIFICATIONDATE' %}
+                                <td>{{ row[i] if row[i] is not none else '' }}</td>
+                            {% endif %}
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>Delete Lookup Record?</h3>
+            <p>This action cannot be undone. Are you sure you want to continue?</p>
+            <div class="modal-buttons">
+                <button class="cancel-btn" onclick="closeDeleteModal()">Cancel</button>
+                <a id="confirmDeleteBtn" class="confirm-btn">Delete</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        // Delete modal logic
+        document.addEventListener('DOMContentLoaded', () => {
+            const deleteButtons = document.querySelectorAll('.delete-btn');
+            const modal = document.getElementById('deleteModal');
+            const confirmBtn = document.getElementById('confirmDeleteBtn');
+
+            deleteButtons.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const url = btn.dataset.url;
+                    confirmBtn.setAttribute('href', url);
+                    modal.style.display = 'flex';
+                });
+            });
+        });
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').style.display = 'none';
+        }
+
+        document.getElementById('deleteModal').addEventListener('click', function(e) {
+            if (e.target === this) closeDeleteModal();
+        });
+
+        // Bulk delete logic
+        document.getElementById('bulkDeleteBtn').addEventListener('click', () => {
+            const isBulk = document.getElementById('bulkDeleteCheck').checked;
+            const campaignId = document.getElementById('bulkCampaignId').value;
+
+            if (isBulk) {
+                if (!campaignId) {
+                    alert('Please enter a Campaign ID for bulk delete.');
+                    return;
+                }
+                const confirmBtn = document.getElementById('confirmDeleteBtn');
+                confirmBtn.setAttribute('href', `/lookup/delete_bulk/${campaignId}`);
+                document.getElementById('deleteModal').style.display = 'flex';
+            } else {
+                alert('Bulk delete checkbox is not checked. Use single-row delete buttons.');
+            }
+        });
+
+        // Column-specific search
+        document.getElementById("searchInput").addEventListener("keyup", function() {
+            let filter = this.value.toLowerCase();
+            let table = document.getElementById("lookupTable");
+            let trs = table.getElementsByTagName("tr");
+
+            let colIndex = parseInt(document.getElementById("columnSelect").value);
+
+            for (let i = 1; i < trs.length; i++) { // skip header row
+                let tds = trs[i].getElementsByTagName("td");
+                let cellIndex = colIndex; // actions column at index 0
+                if (cellIndex >= tds.length) continue;
+
+                let cell = tds[cellIndex];
+                if (cell && cell.innerText.toLowerCase().indexOf(filter) > -1) {
+                    trs[i].style.display = "";
+                } else {
+                    trs[i].style.display = "none";
+                }
+            }
+        });
+    </script>
 </body>
 </html>

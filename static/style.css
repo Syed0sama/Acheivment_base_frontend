@@ -8,14 +8,15 @@ body {
 
 /* Table styling */
 table {
-    width: auto; /* Changed from 100% to auto for better column control */
-    min-width: 100%; /* Ensure table takes full width when needed */
+    width: auto;       /* let table width fit content */
     border-collapse: collapse;
     margin-top: 20px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     background-color: #fff;
     border: 1px solid #ddd;
+    table-layout: auto; /* allows auto column width */
 }
+
 
 /* Increased column widths for better readability */
 th, td {
@@ -25,29 +26,7 @@ th, td {
     white-space: nowrap; /* Prevent text wrapping */
 }
 
-/* Specific column width adjustments */
-th:nth-child(1), td:nth-child(1) { min-width: 120px; } /* Campaign ID */
-th:nth-child(2), td:nth-child(2) { min-width: 200px; } /* Campaign Name */
-th:nth-child(3), td:nth-child(3) { min-width: 120px; } /* Start Date */
-th:nth-child(4), td:nth-child(4) { min-width: 120px; } /* End Date */
-th:nth-child(5), td:nth-child(5) { min-width: 100px; } /* Status */
-th:nth-child(6), td:nth-child(6) { min-width: 80px; }  /* FCA */
-th:nth-child(7), td:nth-child(7) { min-width: 80px; }  /* IFCA */
-th:nth-child(8), td:nth-child(8) { min-width: 100px; } /* BVS Hits */
-th:nth-child(9), td:nth-child(9) { min-width: 120px; } /* Sales Type */
-th:nth-child(10), td:nth-child(10) { min-width: 150px; } /* FCA Bundle Range */
-th:nth-child(11), td:nth-child(11) { min-width: 150px; } /* Retailer SIM Bundle */
-th:nth-child(12), td:nth-child(12) { min-width: 180px; } /* BVS Hits to FCA Range */
-th:nth-child(13), td:nth-child(13) { min-width: 150px; } /* IFCA Date Range */
-th:nth-child(14), td:nth-child(14) { min-width: 140px; } /* Bundle Price Type */
-th:nth-child(15), td:nth-child(15) { min-width: 140px; } /* Price Type Value */
-th:nth-child(16), td:nth-child(16) { min-width: 80px; }  /* Bundle */
-th:nth-child(17), td:nth-child(17) { min-width: 120px; } /* Recharge Type */
-th:nth-child(18), td:nth-child(18) { min-width: 120px; } /* Bundle Type */
-th:nth-child(19), td:nth-child(19) { min-width: 120px; } /* Recharge NR */
-th:nth-child(20), td:nth-child(20) { min-width: 120px; } /* Recharge BR */
-th:nth-child(21), td:nth-child(21) { min-width: 120px; } /* Create Date */
-th:last-child, td:last-child { min-width: 150px; } /* Actions column */
+
 
 th {
     background-color: #2f3640;
@@ -67,15 +46,54 @@ tr:hover {
     background-color: #dcdde1;
 }
 
-/* Table wrapper for horizontal scrolling */
+/* WRAPPER with ALWAYS VISIBLE SCROLLBARS */
 .table-wrapper {
-    overflow-x: auto;
+    overflow: scroll !important;   /* Forces horizontal + vertical scrollbars */
+    overflow-x: scroll !important;
+    overflow-y: scroll !important;
+
     margin-top: 20px;
     border: 1px solid #ddd;
     border-radius: 4px;
     background: white;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+
+    width: 100%;
+    height: calc(100vh - 200px) !important;
+
+    /* For Firefox - makes scrollbars always visible */
+    scrollbar-width: auto !important;
+    scrollbar-color: #888 #f1f1f1 !important;
 }
+
+/* ALWAYS VISIBLE scrollbar for WebKit (Chrome/Safari/Edge) */
+.table-wrapper::-webkit-scrollbar {
+    width: 12px !important;
+    height: 12px !important;
+    display: block !important;   /* Forces scrollbar to stay visible */
+}
+
+.table-wrapper::-webkit-scrollbar-track {
+    background: #f1f1f1 !important;
+    border-radius: 6px !important;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb {
+    background: #888 !important;
+    border-radius: 6px !important;
+    border: 2px solid #f1f1f1 !important;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #555 !important;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb:window-inactive {
+    background: #888 !important;
+}
+
+
+
 
 /* Buttons styling */
 a, input[type="submit"], button {
@@ -296,24 +314,7 @@ select:hover, select:focus {
     margin-top: 0;
 }
 
-/* Scrollbar styling for better appearance */
-.table-wrapper::-webkit-scrollbar {
-    height: 12px;
-}
 
-.table-wrapper::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 6px;
-}
-
-.table-wrapper::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
-    border-radius: 6px;
-}
-
-.table-wrapper::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8;
-}
 
 /* Responsive design */
 @media (max-width: 768px) {
@@ -349,155 +350,143 @@ input[readonly] {
     cursor: not-allowed;
 }
 
-/* Edit Campaign Form Styling */
-.edit-form-container {
-    display: flex;
+/* Modal Overlay */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5); /* slightly darker overlay */
+    display: none;
     justify-content: center;
-    align-items: flex-start;
-    min-height: 80vh;
-    padding: 20px;
+    align-items: center;
+    z-index: 9999;
+    backdrop-filter: blur(2px); /* subtle blur behind modal */
 }
 
-.edit-form-wrapper {
-    width: 90%;
-    max-width: 1200px; /* Much wider than before */
-    background: white;
-    padding: 30px;
+/* Modal Box */
+.modal-box {
+    width: 400px;
+    background: #fff;
+    padding: 30px 25px;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 10px 35px rgba(0,0,0,0.2);
+    animation: popup 0.25s ease;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Popup animation */
+@keyframes popup {
+    from { transform: scale(0.8); opacity: 0; }
+    to   { transform: scale(1); opacity: 1; }
+}
+
+/* Modal Heading */
+.modal-box h3 {
+    font-size: 20px;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+/* Modal Message */
+.modal-box p {
+    font-size: 15px;
+    color: #555;
+    margin-bottom: 25px;
+}
+
+/* Buttons Container */
+.modal-buttons {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+}
+
+/* Cancel Button */
+.cancel-btn {
+    background: #bbb;
+    padding: 10px 20px;
     border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-}
-
-.edit-form-wrapper h2 {
-    text-align: center;
-    margin-bottom: 30px;
-    color: #2f3640;
-    border-bottom: 2px solid #3498db;
-    padding-bottom: 15px;
-}
-
-.edit-form-wrapper form {
-    max-width: none; /* Remove the max-width constraint */
-    width: 100%;
-    background: none;
-    box-shadow: none;
-    padding: 0;
-}
-
-/* Form grid layout for better organization */
-.form-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 20px;
-    margin-bottom: 20px;
-}
-
-.form-group {
-    margin-bottom: 0; /* Reset for grid layout */
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: bold;
-    color: #2c3e50;
-    font-size: 14px;
-}
-
-.form-group input[type="text"],
-.form-group input[type="date"],
-.form-group select {
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
-    transition: border-color 0.3s ease;
-    box-sizing: border-box;
-}
-
-.form-group input[type="text"]:focus,
-.form-group input[type="date"]:focus,
-.form-group select:focus {
-    border-color: #3498db;
-    outline: none;
-    box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
-}
-
-/* Readonly fields styling */
-.form-group input[readonly] {
-    background-color: #f8f9fa;
-    color: #6c757d;
-    cursor: not-allowed;
-    border-color: #e9ecef;
-}
-
-/* Submit button styling */
-.form-submit {
-    grid-column: 1 / -1;
-    text-align: center;
-    margin-top: 30px;
-    padding-top: 20px;
-    border-top: 1px solid #eee;
-}
-
-.update-btn {
-    background-color: #27ae60;
-    color: white;
-    padding: 12px 40px;
     border: none;
-    border-radius: 6px;
-    font-size: 16px;
-    font-weight: bold;
     cursor: pointer;
-    transition: all 0.3s ease;
-    min-width: 200px;
+    color: #fff;
+    font-size: 15px;
+    transition: background 0.2s;
+}
+.cancel-btn:hover {
+    background: #999;
 }
 
-.update-btn:hover {
-    background-color: #219a52;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+/* Confirm/Delete Button */
+.confirm-btn {
+    background: #e74c3c;
+    padding: 10px 20px;
+    border-radius: 8px;
+    color: #fff;
+    text-decoration: none;
+    font-size: 15px;
+    transition: background 0.2s;
+}
+.confirm-btn:hover {
+    background: #c0392b;
 }
 
-/* Dependent fields group styling */
-.dependent-fields {
-    background: #f8f9fa;
-    padding: 20px;
-    border-radius: 6px;
-    border-left: 4px solid #3498db;
-    margin: 20px 0;
-}
-
-.dependent-fields label {
-    color: #2c3e50;
-    font-weight: 600;
-}
-
-/* Nested recharge fields */
-.recharge-fields {
-    background: #e8f4fd;
-    padding: 15px;
-    border-radius: 4px;
-    border-left: 3px solid #2980b9;
-    margin: 15px 0;
-}
-
-/* Responsive design for edit form */
-@media (max-width: 768px) {
-    .edit-form-wrapper {
-        width: 95%;
+/* Optional: Responsive for small screens */
+@media (max-width: 450px) {
+    .modal-box {
+        width: 90%;
         padding: 20px;
     }
-    
-    .form-grid {
-        grid-template-columns: 1fr;
-        gap: 15px;
+    .modal-buttons {
+        flex-direction: column;
     }
-    
-    .update-btn {
+    .modal-buttons > * {
         width: 100%;
-        min-width: auto;
     }
 }
 
-/* Add these styles to your existing CSS file */
+
+
+
+table a i {
+    font-size: 1.1rem;
+    color: #333;
+    margin: 0 5px;
+    cursor: pointer;
+}
+
+table a i:hover {
+    color: #d9534f; /* red for delete, or you can differentiate edit */
+}
+
+/* Force yellow color for Edit icon */
+.edit-btn i {
+    color: #000000 !important;  /* Yellow */
+    font-size: 16px;
+    cursor: pointer;
+}
+
+/* Force red color for Delete icon */
+.delete-btn i {
+    color: #000000 !important;  /* Red */
+    font-size: 16px;
+    cursor: pointer;
+}
+
+/* Optional hover effect */
+.edit-btn:hover i {
+    color: #9c7607 !important; /* Darker yellow on hover */
+}
+
+.delete-btn:hover i {
+    color: #831823 !important; /* Darker red on hover */
+}
+
+/* Remove underline from links */
+.edit-btn,
+.delete-btn {
+    text-decoration: none;
+}
+

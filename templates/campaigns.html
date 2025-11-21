@@ -3,9 +3,11 @@
 <head>
     <title>Campaigns</title>
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <h2>Campaigns</h2>
+
     <div class="nav-buttons">
         <a href="/" class="nav-btn">Home</a>
         <a href="/campaigns/add" class="nav-btn">Add Campaign</a>
@@ -13,29 +15,124 @@
         <a href="/lookup" class="nav-btn">Lookup Table</a>
         <a href="/logs" class="nav-btn">Logs</a>
     </div>
-    
-    <table border="1">
-        <thead>
-            <tr>
-                {% for col in display_columns %}
-                    <th>{{ col }}</th>
-                {% endfor %}
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for row in rows %}
+
+    <!-- Search Filter -->
+    <div style="margin:10px 0;">
+        <label for="columnSelect">Search by:</label>
+        <select id="columnSelect" style="padding:5px;margin-right:5px;">
+            <option value="1">CAMPAIGNID</option>
+            <option value="2">CAMPAIGNNAME</option>
+            <option value="3">STARTDATE</option>
+            <option value="4">ENDDATE</option>
+            <option value="5">STATUS</option>
+            <option value="6">FCA</option>
+            <option value="7">IFCA</option>
+            <option value="8">BVSHITS</option>
+            <option value="9">BUNDLE</option>
+        </select>
+        <input type="text" id="searchInput" placeholder="Search..." style="padding:5px;width:300px;">
+    </div>
+
+    <div class="table-wrapper">
+        <table id="campaignTable" border="1">
+            <thead>
                 <tr>
-                    {% for val in row %}
-                        <td>{{ val if val is not none else '' }}</td>
+                    <th>Actions</th>
+                    {% for col in display_columns %}
+                        {% if col != 'Tenant ID' %}
+                            <th>{{ col }}</th>
+                        {% endif %}
                     {% endfor %}
-                    <td>
-                        <a href="/campaigns/edit/{{ row[columns.index('CAMPAIGNID')] }}" class="edit-btn">Edit</a>
-                        <a href="/campaigns/delete/{{ row[columns.index('CAMPAIGNID')] }}" class="delete-btn" onclick="return confirm('Are you sure?')">Delete</a>
-                    </td>
                 </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                    {% if row[columns.index('CAMPAIGNID')] != 'CAMPAIGNID' %}
+                    <tr>
+                        <!-- Action icons -->
+                        <td>
+                            <a href="/campaigns/edit/{{ row[columns.index('CAMPAIGNID')] }}" class="edit-btn" title="Edit">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </a>
+                            <a href="#" class="delete-btn" data-url="/campaigns/delete/{{ row[columns.index('CAMPAIGNID')] }}" title="Delete">
+                                <i class="fa-solid fa-trash"></i>
+                            </a>
+                        </td>
+
+                        <!-- Other columns -->
+                        {% for i in range(columns|length) %}
+                            {% set col_name = columns[i] %}
+                            {% if col_name != 'TENANTID' %}
+                                <td>{{ row[i] if row[i] is not none else '' }}</td>
+                            {% endif %}
+                        {% endfor %}
+                    </tr>
+                    {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>Delete Campaign?</h3>
+            <p>This action cannot be undone. Are you sure you want to continue?</p>
+            <div class="modal-buttons">
+                <button class="cancel-btn" onclick="closeDeleteModal()">Cancel</button>
+                <a id="confirmDeleteBtn" class="confirm-btn">Delete</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        // Delete modal logic
+        document.addEventListener('DOMContentLoaded', () => {
+            const deleteButtons = document.querySelectorAll('.delete-btn');
+            const modal = document.getElementById('deleteModal');
+            const confirmBtn = document.getElementById('confirmDeleteBtn');
+
+            deleteButtons.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const url = btn.dataset.url;
+                    confirmBtn.setAttribute('href', url);
+                    modal.style.display = 'flex';
+                });
+            });
+        });
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').style.display = 'none';
+        }
+
+        document.getElementById('deleteModal').addEventListener('click', function(e) {
+            if (e.target === this) closeDeleteModal();
+        });
+
+        // Column-specific search
+        document.getElementById("searchInput").addEventListener("keyup", function() {
+            let filter = this.value.toLowerCase();
+            let table = document.getElementById("campaignTable");
+            let trs = table.getElementsByTagName("tr");
+
+            let colIndex = parseInt(document.getElementById("columnSelect").value);
+
+            for (let i = 1; i < trs.length; i++) { // skip header row
+                let tds = trs[i].getElementsByTagName("td");
+                // Actions column is at index 0, so adjust
+                let cellIndex = colIndex; 
+                if (cellIndex >= tds.length) continue;
+
+                let cell = tds[cellIndex];
+                if (cell && cell.innerText.toLowerCase().indexOf(filter) > -1) {
+                    trs[i].style.display = "";
+                } else {
+                    trs[i].style.display = "none";
+                }
+            }
+        });
+    </script>
 </body>
 </html>
